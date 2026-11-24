@@ -14,7 +14,7 @@ browser tab. `main` follows upstream; `ueko` (the default branch) adds:
 | `distro/kernel.json` | the upstream release whose kernel everything runs on |
 | `distro/tools/` | builds, the apt repository, the catalog, publishing |
 | `web/src/{workspace,catalog}.ts` | the page: several machines per origin, images and apps from a catalog |
-| `.github/workflows/ueko.yml` | all of it, on a push to `ueko` |
+| `.github/workflows/ueko.yml` | all of it: a pull request builds, its merge to `ueko` publishes |
 
 Published (nothing there is ever replaced but the indexes):
 
@@ -49,7 +49,8 @@ changes under its version: bump `version` with every change. In a workspace:
 1. `guest/distro/NAME/` with a `Dockerfile` (the rules are at the top of
    `guest/lib/oci.sh`), `pins.sh` and `build.sh` (copy another's).
 2. An entry in `distro/catalog.json`.
-3. Push: CI builds it on arm64, boots it (`distro/tools/smoke.sh`) and
+3. Open a pull request to `ueko`: CI builds it on arm64 and boots it
+   (`distro/tools/smoke.sh`); the merge
    publishes it. A workspace keeps its changes over a new image of its distro.
 
 Locally (needs Docker with arm64, Zig 0.16, Node 24):
