@@ -23,7 +23,7 @@ RUN apt-get update -q && apt-get install -y -q --no-install-recommends \
  && apt-get clean
 # No lock screen (it needs GDM, which needs virtual terminals), no blanking
 # and no first-run tour; updates only when asked for.
-RUN printf '[org.gnome.desktop.lockdown]\ndisable-lock-screen=true\n[org.gnome.desktop.session]\nidle-delay=uint32 0\n[org.gnome.desktop.screensaver]\nlock-enabled=false\n[org.gnome.shell]\nwelcome-dialog-last-shown-version="999"\n' > /usr/share/glib-2.0/schemas/90_kw.gschema.override \
+RUN printf '[org.gnome.desktop.lockdown]\ndisable-lock-screen=true\n[org.gnome.desktop.session]\nidle-delay=uint32 0\n[org.gnome.desktop.screensaver]\nlock-enabled=false\n[org.gnome.shell]\nwelcome-dialog-last-shown-version="999"\n[org.gnome.shell:ubuntu]\nfavorite-apps=["firefox.desktop","org.gnome.Nautilus.desktop","org.gnome.Ptyxis.desktop","org.gnome.TextEditor.desktop","yelp.desktop"]\n' > /usr/share/glib-2.0/schemas/90_kw.gschema.override \
  && if [ -e /usr/share/glib-2.0/schemas/org.gnome.software.gschema.xml ]; then printf '[org.gnome.software]\ndownload-updates=false\n' >> /usr/share/glib-2.0/schemas/90_kw.gschema.override; fi \
  && glib-compile-schemas /usr/share/glib-2.0/schemas
 RUN printf 'XDG_CURRENT_DESKTOP=ubuntu:GNOME\nXDG_SESSION_DESKTOP=ubuntu\nDESKTOP_SESSION=ubuntu\n' > /usr/lib/kw-desktop.env \

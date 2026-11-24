@@ -19,4 +19,10 @@ for f in etc/gtk-3.0/settings.ini etc/gtk-4.0/settings.ini etc/chromium.d/kw-way
 		rm -f "/$f"
 	fi
 done
+# Where the distro's /usr/sbin is a link to bin (Fedora, Arch), the layer's
+# directory of that name hides it, and with it half of the commands.
+if [ -L /run/kw-lower/kw/distro/usr/sbin ] && [ ! -L /usr/sbin ]; then
+	mv /usr/sbin/kw-overlay /usr/bin/ 2>/dev/null
+	rmdir /usr/sbin && ln -s bin /usr/sbin
+fi
 exec /usr/lib/systemd/systemd
