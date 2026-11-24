@@ -45,7 +45,7 @@ oci_wlandr() {
 	)
 }
 
-native_distro() { native=1 oci_distro "$@"; }
+native_distro() { native=1 KW_DISTRO_REPORT=0 KW_BOOT_MAX=6291456 oci_distro "$@"; }
 
 # What a native image has instead of Debian's PID 1: systemd's units and the
 # session, started as their [Install] sections say.
@@ -57,6 +57,8 @@ oci_native() {
 	ln -sfn /usr/lib/systemd/system/kw-tty.service "$units/sysinit.target.wants/kw-tty.service"
 	ln -sfn /usr/lib/systemd/system/kw-desktop.service "$units/graphical.target.wants/kw-desktop.service"
 	ln -sfn /usr/lib/systemd/system/graphical.target "$units/default.target"
+	mkdir -p "$stage/etc/systemd/user/graphical-session.target.wants"
+	ln -sfn /usr/lib/systemd/user/kw-desktop-ready.service "$stage/etc/systemd/user/graphical-session.target.wants/kw-desktop-ready.service"
 	# The desktop's own unit, so no display manager. And this machine has no
 	# kernel modules, swap, disks or firmware to look after.
 	for f in gdm gdm3 sddm lightdm plasmalogin display-manager systemd-modules-load systemd-vconsole-setup systemd-hwdb-update \
@@ -67,6 +69,17 @@ oci_native() {
 	done
 	for f in apt-daily apt-daily-upgrade fwupd-refresh dnf-makecache e2scrub_all fstrim man-db unattended-upgrades; do
 		ln -sfn /dev/null "$units/$f.timer"
+	done
+	# What a desktop does in the background for hours on a real disk and costs
+	# this CPU its first minutes: file indexing (the kernel has no Landlock and
+	# no file handles for it either) and looking for updates.
+	mkdir -p "$stage/etc/systemd/user" "$stage/etc/xdg/autostart"
+	for f in localsearch-3 localsearch-control-3 tracker-miner-fs-3 tracker-extract-3 kde-baloo plasma-baloorunner; do
+		ln -sfn /dev/null "$stage/etc/systemd/user/$f.service"
+	done
+	for f in org.gnome.Software org.gnome.Evolution-alarm-notify gnome-software-service tracker-miner-fs-3 localsearch-3 baloo_file org.kde.discover.notifier \
+		update-notifier orca-autostart org.freedesktop.problems.applet print-applet; do
+		[ ! -e "$stage/etc/xdg/autostart/$f.desktop" ] || printf '[Desktop Entry]\nType=Application\nName=%s\nExec=true\nHidden=true\n' "$f" > "$stage/etc/xdg/autostart/$f.desktop"
 	done
 	# Made at the first boot of each workspace, kept on its disk.
 	: > "$stage/etc/machine-id"

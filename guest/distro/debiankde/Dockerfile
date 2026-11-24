@@ -9,12 +9,15 @@ RUN apt-get update -q && apt-get install -y -q --no-install-recommends \
     curl wget ca-certificates unzip procps less nano vim-tiny xz-utils zstd iproute2 htop tmux sudo git file bash-completion locales python3 strace \
     plasma-desktop plasma-workspace plasma-nm plasma-pa plasma-systemmonitor kwin-wayland systemsettings \
     konsole dolphin kate ark kcalc gwenview okular firefox-esr kde-config-gtk-style breeze-gtk-theme kscreen \
-    plasma-workspace-wallpapers desktop-base polkit-kde-agent-1 qt6-wayland xdg-desktop-portal-kde \
+    desktop-base polkit-kde-agent-1 qt6-wayland xdg-desktop-portal-kde \
     libgl1-mesa-dri libegl-mesa0 libgles2 xwayland pipewire-pulse pipewire-alsa wireplumber \
     fonts-dejavu-core fonts-noto-core fonts-noto-color-emoji fonts-hack xdg-user-dirs xdg-utils \
  && { groupadd -rf render; groupadd -rf input; } \
  && sed -i 's/^# en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen && printf 'LANG=en_US.UTF-8\n' > /etc/default/locale \
  && sed -i '/^Name: debconf\/frontend$/,/^$/ s/^Value: .*/Value: Noninteractive/' /var/cache/debconf/config.dat \
  && apt-get clean
+# No lock screen or blanking: the user has no password to come back with.
+RUN mkdir -p /etc/xdg && printf '[Daemon]\nAutolock=false\nLockOnResume=false\n' > /etc/xdg/kscreenlockerrc \
+ && printf '[Basic Settings]\nIndexing-Enabled=false\n' > /etc/xdg/baloofilerc
 RUN printf 'XDG_CURRENT_DESKTOP=KDE\nXDG_SESSION_DESKTOP=KDE\nDESKTOP_SESSION=plasma\n' > /usr/lib/kw-desktop.env \
  && printf 'exec startplasma-wayland\n' > /usr/lib/kw-desktop
