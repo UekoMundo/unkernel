@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026 Vineel Sai
-// The catalog and the workspaces' names: node --test web/test/ueko.test.ts
+// The catalog, the workspaces' names and the background apps' scripts: node --test web/test/ueko.test.ts
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
 import { fetchRoutes } from "../../js/core/net-fetch.ts";
+import { START_SH, STATUS_SH, STOP_SH } from "../src/background-sh.ts";
 import { parseCatalog } from "../src/catalog.ts";
 import { scoped, workspaceId, wsDataDisk, wsSessionDb } from "../src/workspace.ts";
 
@@ -53,4 +58,40 @@ test("a routed host's other ports go to the inner backend by name", async () => 
 	net.close();
 	const err = await new Promise((onClose) => fetchRoutes(undefined, { "archive.example": "https://mirror.example/x" }).connect({ host: ip!, port: 443 } as never, { ...ev, onClose } as never));
 	assert.match(String(err), /port 80 only/);
+});
+
+test("an app without a terminal runs once, says how it ended, and stops", async () => {
+	const home = mkdtempSync(path.join(tmpdir(), "kw-home-"));
+	const dir = path.join(home, ".apps/x");
+	mkdirSync(dir, { recursive: true });
+	const sh = (script: string) => execFileSync("sh", ["-c", script, "sh", ".apps/x"], { env: { ...process.env, HOME: home }, encoding: "utf8" }).trim();
+	const run = (body: string) => writeFileSync(path.join(dir, "run.sh"), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
+	const status = async () => {
+		for (let i = 0; i < 50; i++) {
+			const s = sh(STATUS_SH);
+			if (s) return s;
+			await new Promise((r) => setTimeout(r, 100));
+		}
+		return "";
+	};
+	try {
+		run("echo out; echo err >&2; exit 3");
+		assert.equal(sh(START_SH), "");
+		assert.equal(await status(), "3");
+		const log = readFileSync(path.join(dir, "run.log"), "utf8");
+		assert.match(log, /out[^]*err/);
+		// Standard input stays open, so a program that reads it waits; a second start finds it.
+		run("read x; exit 0");
+		assert.equal(sh(START_SH), "");
+		await new Promise((r) => setTimeout(r, 300));
+		assert.equal(sh(STATUS_SH), "");
+		assert.equal(sh(START_SH), "running");
+		sh(STOP_SH);
+		assert.equal(await status(), "143");
+		run("exit 0");
+		assert.equal(sh(START_SH), "");
+		assert.equal(await status(), "0");
+	} finally {
+		rmSync(home, { recursive: true, force: true });
+	}
 });
