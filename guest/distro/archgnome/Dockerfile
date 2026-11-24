@@ -9,7 +9,7 @@ RUN set -e; cd /tmp; u=http://os.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest
     gpg --batch --status-fd 1 --verify a.tar.gz.sig a.tar.gz | grep -q 'VALIDSIG.*68B3537F39A313B3E574D06777193F152BDBE6A6'; \
     mkdir /root-arch; bsdtar -xpf a.tar.gz -C /root-arch
 
-FROM scratch
+FROM scratch AS sys
 COPY --from=fetch /root-arch/ /
 # Pacman's download sandbox needs Landlock and a user namespace, which the
 # build's container (and the guest's kernel) may not have.
@@ -26,7 +26,7 @@ RUN sed -i -e 's/^#DisableSandbox.*/DisableSandbox/' -e 's/^CheckSpace/#CheckSpa
  && sed -i 's/^#en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen && printf 'LANG=en_US.UTF-8\n' > /etc/locale.conf \
  && ln -sf /usr/lib/systemd/system/NetworkManager.service /etc/systemd/system/multi-user.target.wants/NetworkManager.service \
  && ln -sf /dev/null /etc/systemd/system/systemd-networkd.service && ln -sf /dev/null /etc/systemd/system/systemd-resolved.service && ln -sf /dev/null /etc/systemd/system/sshd.service \
- && { gpgconf --homedir /etc/pacman.d/gnupg --kill all; find /var/cache/pacman/pkg -type f -delete; }
+ && { gpgconf --homedir /etc/pacman.d/gnupg --kill all; find /var/cache/pacman/pkg /boot /usr/lib/modules /usr/lib/firmware /usr/include /usr/share/man /usr/share/doc /usr/share/info /usr/share/locale /usr/share/gtk-doc -type f -delete; }
 # No lock screen (it needs GDM, which needs virtual terminals), no blanking
 # and no first-run tour; updates only when asked for.
 RUN printf '[org.gnome.desktop.lockdown]\ndisable-lock-screen=true\n[org.gnome.desktop.session]\nidle-delay=uint32 0\n[org.gnome.desktop.screensaver]\nlock-enabled=false\n[org.gnome.shell]\nwelcome-dialog-last-shown-version="999"\n' > /usr/share/glib-2.0/schemas/90_kw.gschema.override \
@@ -34,3 +34,16 @@ RUN printf '[org.gnome.desktop.lockdown]\ndisable-lock-screen=true\n[org.gnome.d
  && glib-compile-schemas /usr/share/glib-2.0/schemas
 RUN printf 'XDG_CURRENT_DESKTOP=GNOME\nXDG_SESSION_DESKTOP=gnome\nDESKTOP_SESSION=gnome\n' > /usr/lib/kw-desktop.env \
  && printf 'exec gnome-session\n' > /usr/lib/kw-desktop
+
+# The wallpaper is a 16-megapixel JPEG XL, which takes the emulated CPU more
+# than a minute to decode, and the shell waits for it: the same one as a JPEG.
+FROM debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2 AS wall
+RUN apt-get update -q && apt-get install -y -q --no-install-recommends libjxl-tools imagemagick
+COPY --from=sys /usr/share/backgrounds /b
+RUN mkdir /o && djxl /b/gnome/adwaita-l.jxl /tmp/l.png && djxl /b/gnome/adwaita-d.jxl /tmp/d.png \
+ && for i in l d; do convert /tmp/$i.png -resize 2560x2560 -quality 92 -strip /o/default-$i.jpg; done
+
+FROM sys
+COPY --from=wall /o /usr/share/backgrounds/kw
+RUN printf '[org.gnome.desktop.background]\npicture-uri="file:///usr/share/backgrounds/kw/default-l.jpg"\npicture-uri-dark="file:///usr/share/backgrounds/kw/default-d.jpg"\n[org.gnome.desktop.screensaver]\npicture-uri="file:///usr/share/backgrounds/kw/default-l.jpg"\n' > /usr/share/glib-2.0/schemas/91_kw.gschema.override \
+ && glib-compile-schemas /usr/share/glib-2.0/schemas

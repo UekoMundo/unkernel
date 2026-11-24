@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Vineel Sai
+# The page's units stay on through a preset-all.
+
+enable kw-tty.service
+enable kw-desktop.service

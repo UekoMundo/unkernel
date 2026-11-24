@@ -10,6 +10,8 @@ PartOf=graphical-session.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+# The target is reached when the shell answers, a little before it has drawn.
+ExecStartPre=/bin/sleep 20
 ExecStart=/bin/touch %t/kw-desktop-ready
 ExecStop=/bin/rm -f %t/kw-desktop-ready
 

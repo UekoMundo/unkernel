@@ -26,7 +26,7 @@ RUN sed -i -e 's/^#DisableSandbox.*/DisableSandbox/' -e 's/^CheckSpace/#CheckSpa
  && sed -i 's/^#en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen && printf 'LANG=en_US.UTF-8\n' > /etc/locale.conf \
  && ln -sf /usr/lib/systemd/system/NetworkManager.service /etc/systemd/system/multi-user.target.wants/NetworkManager.service \
  && ln -sf /dev/null /etc/systemd/system/systemd-networkd.service && ln -sf /dev/null /etc/systemd/system/systemd-resolved.service && ln -sf /dev/null /etc/systemd/system/sshd.service \
- && { gpgconf --homedir /etc/pacman.d/gnupg --kill all; find /var/cache/pacman/pkg -type f -delete; }
+ && { gpgconf --homedir /etc/pacman.d/gnupg --kill all; find /var/cache/pacman/pkg /boot /usr/lib/modules /usr/lib/firmware /usr/include /usr/share/man /usr/share/doc /usr/share/info /usr/share/locale /usr/share/gtk-doc -type f -delete; }
 # No lock screen or blanking: the user has no password to come back with.
 RUN mkdir -p /etc/xdg && printf '[Daemon]\nAutolock=false\nLockOnResume=false\n' > /etc/xdg/kscreenlockerrc \
  && printf '[Basic Settings]\nIndexing-Enabled=false\n' > /etc/xdg/baloofilerc
