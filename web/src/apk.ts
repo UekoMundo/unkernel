@@ -16,6 +16,8 @@
 //   fetch goes through a Wisp stream as plain http instead. That is
 //   safe because apk checks an index's signature every time it loads one
 //   from the cache, and refuses a bad one.
+// - The guest's own apk can be answered from a CORS mirror only over plain
+//   http, so its https lines for a routed mirror become http ones first.
 // - The page keeps each index in the Cache API (CACHE_NAME, keyed by the http
 //   URL) with its ETag, Last-Modified and the time it was last validated
 //   (VALIDATED). One validated less than CACHE_FRESH_S ago is pushed with no
@@ -148,6 +150,18 @@ async function getIndex(cache: Cache | null, http: URL, get: (init: { headers: H
 	return { bytes, validated: now, source };
 }
 
+// The repositories files with https lines of the hosts "$@".
+const HTTPS_SH = `for h; do grep -lsF "https://$h/" /etc/apk/repositories /etc/apk/repositories.d/*.list /etc/kw-apk-lazy; done; true`;
+// Makes those lines plain http ones.
+const PLAIN_SH = `for h; do for f in /etc/apk/repositories /etc/apk/repositories.d/*.list /etc/kw-apk-lazy; do
+	[ ! -e "$f" ] || sed -i "s#https://$h/#http://$h/#" "$f"
+done; done`;
+
+/** The routed hosts' repositories over plain http, which the page answers (net.ts). */
+async function plainRoutes(vm: KernelHandle, hosts: string[]): Promise<void> {
+	if ((await vm.exec("/bin/sh", ["-c", HTTPS_SH, "sh", ...hosts])).stdout.trim()) await execAsRoot(vm, PLAIN_SH, hosts);
+}
+
 /**
  * Push fresh apk indexes into the guest (see the top of this file). Resolves
  * when done; never rejects (failures go to `log`).
@@ -157,6 +171,7 @@ export async function prefetchApkIndexes(vm: KernelHandle, opts: { servers: stri
 	let backend: ReturnType<typeof wispBackend> | undefined;
 	try {
 		const t0 = performance.now();
+		if (opts.routes) await plainRoutes(vm, Object.keys(opts.routes));
 		const state = await vm.exec("/bin/sh", ["-c", STATE_SH]);
 		if (state.exitCode !== 0) throw new Error(`reading the guest's apk state: ${state.stderr.trim() || `exit ${state.exitCode}`}`);
 		const st = parseState(state.stdout);

@@ -55,8 +55,6 @@ distro_unpack alpine ALPINE   # $stage, $ALPINE_TARBALL
 # /etc/kw-apk-enable adds it back the first time something needs it
 # (kw-apk-install, kw-qemu).
 r="$stage/etc/apk/repositories"
-# Plain http: the page answers it from its CORS mirror, and apk checks signatures.
-sed -i 's#^https://#http://#' "$r"
 grep '/community$' "$r" > "$stage/etc/kw-apk-lazy" || { echo "alpine: no community line in $r" >&2; exit 1; }
 grep -v '/community$' "$r" > "$r.kw" && cat "$r.kw" > "$r" && rm "$r.kw"
 
