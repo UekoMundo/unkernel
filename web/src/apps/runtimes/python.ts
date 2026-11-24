@@ -13,7 +13,6 @@ export default {
 	colors: ["#4b8bbe", "#1d3d63"],
 	needs: { net: true },
 	packages: { alpine: ["python3"], debian: ["python3"] },
-	terminal: "window",
 	commands: [
 		"echo 'Try: import platform; platform.machine(), platform.libc_ver()   (exit() or Ctrl-D quits)'",
 		"python3",

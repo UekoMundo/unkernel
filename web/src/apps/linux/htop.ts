@@ -14,7 +14,6 @@ export default {
 	colors: ["#16a34a", "#0f2a1c"],
 	needs: { net: true },
 	packages: { alpine: ["htop"], debian: ["htop"] },
-	terminal: "window",
 	commands: [
 		"echo 'F6 sorts, F5 shows a tree, F9 kills, q quits (no F-keys: Esc then the digit)'",
 		"htop",

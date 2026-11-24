@@ -15,7 +15,6 @@ export default {
 	needs: { net: true },
 	// The shim is on both distros; nothing to install first.
 	packages: { alpine: [], debian: [] },
-	terminal: "window",
 	commands: [
 		"echo 'The first run installs Node.js into ~/.local/bin. Try: process.versions, os.cpus().length   (.exit or Ctrl-D quits)'",
 		"node --version",

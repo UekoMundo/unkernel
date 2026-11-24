@@ -16,6 +16,5 @@ export default {
 	needs: { net: true },
 	// The shim is on both distros; nothing to install first.
 	packages: { alpine: [], debian: [] },
-	terminal: "window",
 	commands: ["fx"],
 } satisfies TerminalApp;

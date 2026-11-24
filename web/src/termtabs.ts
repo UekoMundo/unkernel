@@ -10,11 +10,12 @@
 // - A Terminal window is a desktop window (wm.ts, appId "terminal", id
 //   terminal-K, its Dock tile #dock-terminal-K) holding an ordered set of
 //   tabs, one per terminal, and one active tab. A terminal is a tab of
-//   exactly one window. The console's window is CONSOLE_WIN, opened by
-//   components/Workspace.tsx when it loads, and it never goes: the console
-//   tab cannot be closed or moved, and the window has no close button (it
-//   minimizes). Closing any other window closes its tabs (the close action,
-//   terminals.ts closeTerminalWindow); it goes once its last tab does.
+//   exactly one window. The console's is CONSOLE_WIN, opened by
+//   components/Workspace.tsx when it loads. Closing a window closes its tabs
+//   (the close action, terminals.ts closeTerminalWindow); it goes once its
+//   last tab does. The console's tab closes as the others do, but its
+//   terminal runs on out of sight (closeConsole(): the element parked at its
+//   size, so its grid stays), and selecting terminal 0 opens it again.
 // - The window's content is a box (.term-stack) holding the terminal elements
 //   of its tabs (#term, .term-pty) stacked in it (style.css), so they all
 //   share its size and refit together; only the active one is visible, the
@@ -186,7 +187,6 @@ function openWindow(id: string, first: number, el: HTMLElement, geom: { w?: numb
 	const spec = {
 		id, appId: TERMINAL.id, meta: windowMeta(tw), title: windowTitle(tw), dockId: `dock-${id}`, content: box, ...geom,
 		titleContent: cfg.strip?.(id), status: windowStatus(tw),
-		closable: id !== CONSOLE_WIN, // the console's: minimize only
 		onFocus: () => focused(id),
 		onClose: () => {
 			cfg.close?.(id);
@@ -198,12 +198,41 @@ function openWindow(id: string, first: number, el: HTMLElement, geom: { w?: numb
 	sync();
 }
 
+/** The console's window's size. */
+let consoleGeom: { w: number; h: number } | undefined;
+
 /** The console's window, with `el` (#term) as its tab 0 (components/Workspace.tsx; once). */
 export function openConsoleWindow(el: HTMLElement, geom: { w: number; h: number }): void {
-	if (termWindow(CONSOLE_WIN)) return;
+	if (els.has(0)) return;
 	els.set(0, el);
+	consoleGeom = geom;
 	el.classList.add("term-tab");
 	openWindow(CONSOLE_WIN, 0, el, geom, true);
+}
+
+/** Where the console's terminal waits while it is closed: laid out at its size (wterm fits to its box), unseen. */
+let park: HTMLElement | undefined;
+
+/** Close the console's tab (and its window with its last tab): the desktop is there without it, its terminal runs on. */
+export function closeConsole(): void {
+	const el = els.get(0);
+	if (!el || !windowOf(0)) return;
+	park ??= Object.assign(document.createElement("div"), { id: "term-park", inert: true, ariaHidden: "true" });
+	park.style.cssText = `position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;width:${el.clientWidth || 800}px;height:${el.clientHeight || 480}px`;
+	document.body.append(park);
+	park.append(el);
+	hooks.shown?.(0, false);
+	shownMap.delete(0);
+	removeTab(0);
+	els.set(0, el);
+}
+
+/** The console closed? Open it again: in its own window, or where terminal-1 is another's now, a new one. */
+function reopenConsole(): void {
+	const el = els.get(0);
+	if (!el || windowOf(0)) return;
+	const id = termWindow(CONSOLE_WIN) ? freeId() : CONSOLE_WIN;
+	openWindow(id, 0, el, consoleGeom, true);
 }
 
 /**
@@ -260,6 +289,7 @@ export function showTab(n: number): boolean {
 
 /** Show terminal n and focus, raise and restore its window. */
 export function selectTab(n: number): boolean {
+	if (n === 0) reopenConsole();
 	const tw = windowOf(n);
 	if (!tw || !showTab(n)) return false;
 	wm.focus(tw.id);

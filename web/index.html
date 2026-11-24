@@ -154,6 +154,9 @@
 		const r = ev.reason;
 		KW.report("rejection", "Unhandled promise rejection: " + (r?.message ?? String(r)), r?.stack ?? "", !KW.started);
 	});
+	// A machine's screen (config.ts Machine), known before the catalog is read when the link says so: no page desktop for a moment.
+	const screen = new URLSearchParams(location.search).get("ui");
+	if (screen === "display" || screen === "console") document.documentElement.dataset.machine = screen;
 	setTimeout(() => {
 		if (!KW.ui) KW.report("watchdog", "The page script did not run",
 			"The page module failed to load or parse, or the browser is too old for it (Chrome/Edge 137+, Firefox 153+ or Safari 27+ is needed anyway). Check the network and the server log.", true);

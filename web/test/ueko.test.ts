@@ -12,6 +12,7 @@ test("a catalog's images and apps", () => {
 		abi: 4,
 		images: [
 			{ name: "ueko", url: "ueko-0.erofs", size: 5, image: "ueko-1", title: "Ueko Linux", family: "debian", gl: true, abi: 4 },
+			{ name: "fedora", url: "fedora-0.erofs", size: 6, ui: "display" }, { name: "kali", url: "kali-0.erofs", size: 7, ui: "nonsense" },
 			{ name: "old", url: "old.erofs", size: 5, abi: 3 },
 			{ name: "Bad Name", url: "x", size: 5 }, { name: "nosize", url: "x" }, null, 7,
 		],
@@ -20,7 +21,9 @@ test("a catalog's images and apps", () => {
 			{ id: "nocommand", title: "x", packages: [], distros: [] },
 		],
 	}, "https://example.test/linux/images/catalog.json", 4);
-	assert.deepEqual(c.images, [{ name: "ueko", url: "https://example.test/linux/images/ueko-0.erofs", size: 5, imageId: "ueko-1", title: "Ueko Linux", family: "debian", gl: true }]);
+	assert.deepEqual(c.images, [{ name: "ueko", url: "https://example.test/linux/images/ueko-0.erofs", size: 5, imageId: "ueko-1", title: "Ueko Linux", family: "debian", gl: true },
+		{ name: "fedora", url: "https://example.test/linux/images/fedora-0.erofs", size: 6, gl: false, ui: "display" },
+		{ name: "kali", url: "https://example.test/linux/images/kali-0.erofs", size: 7, gl: false }]);
 	assert.deepEqual(c.apps.map((a) => [a.id, a.desc, a.wayland]), [["notes", "Notes", true]]);
 	for (const bad of [null, [], "x", { images: {} }]) assert.deepEqual(parseCatalog(bad, "https://example.test/", 4), { images: [], apps: [] });
 });

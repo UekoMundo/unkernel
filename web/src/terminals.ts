@@ -6,12 +6,13 @@
 // terminal (its tab, and its window focused, raised and restored), open one
 // (a tab of a given Terminal window, of a new one, or of the one that last
 // had the focus), close one (asking first while its shell runs), and a
-// Terminal window's close button (all its tabs; the console's window has
-// none). Each says why in a toast when it cannot.
+// Terminal window's close button (all its tabs). Closing the console only
+// takes it from view (termtabs.ts closeConsole()). Each says why in a toast
+// when it cannot.
 import { keyFor, PREFIX } from "./keys.ts";
 import { KW } from "./kw.ts";
 import { isRunning, ui$ } from "./store.ts";
-import { currentTerminal, selectTab, termWindow } from "./termtabs.ts";
+import { closeConsole, currentTerminal, selectTab, termWindow } from "./termtabs.ts";
 import type { OpenError } from "./wterms.ts";
 
 /** Show terminal n (0: the console): its tab, and its Terminal window focused, raised and restored. */
@@ -41,17 +42,18 @@ export function newTerminal(where?: string): void {
 /** Open a new Terminal window with a new terminal in it. */
 export const newTerminalWindow = (): void => newTerminal("new");
 
-/** Close terminal n (the current one by default), asking first while its shell runs; terminal 0 stays. */
+/** Close terminal n (the current one by default), asking first while its shell runs; the console's only goes from view. */
 export async function closeTerminal(n = currentTerminal()): Promise<void> {
+	if (n === 0) return closeConsole();
 	const ui = KW.ui!, t = KW.windows?.list().find((x) => x.n === n);
-	if (!t || n === 0) { ui.toast("Terminal 0, the console, cannot be closed"); return; }
+	if (!t) return;
 	if (t.state === "open" && !await ui.ask({ title: `close terminal ${n}`, msg: "Its shell and the programs started from it are hung up (SIGHUP).", ok: "Close", danger: true })) return;
 	await KW.windows!.close(n);
 }
 
 /**
  * A Terminal window's close button: close its terminals, asking once while
- * any of their shells runs. The console's window has no close button.
+ * any of their shells runs (not for the console's, which runs on).
  */
 export async function closeTerminalWindow(id: string): Promise<void> {
 	const tw = termWindow(id);
@@ -65,4 +67,5 @@ export async function closeTerminalWindow(id: string): Promise<void> {
 		ok: "Close", danger: true,
 	})) return;
 	await Promise.all(ttys.map((n) => KW.windows?.close(n)));
+	if (tw.tabs.includes(0)) closeConsole();
 }

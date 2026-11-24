@@ -42,13 +42,14 @@ export function App() {
 	useKeyBar(cfg.mobile);
 	usePinchFont(cfg.mobile);
 	// Before boot.ts adds display.ts's key listener, so the prefix comes first.
-	useEffect(installShortcuts, []);
+	// A machine's screen has none: every key is the guest's.
+	useEffect(() => (cfg.machine ? undefined : installShortcuts()), []);
 
 	return (
 		<>
 			<div id="app" ref={app} data-state={state} data-blank={blank} className={`fixed inset-x-0 top-0 flex h-dvh flex-col ${cfg.mobile ? "mobile" : ""} ${compact ? "compact" : ""}`}>
 				{/* Out of the flow, under the rest (the default wallpaper is #app's own background). */}
-				<Wallpaper />
+				{!cfg.machine && <Wallpaper />}
 				{/* The desktop: the windows. */}
 				<div className="relative flex min-h-0 flex-1">
 					<main id="desktop" className="relative min-h-0 min-w-0 flex-1">
@@ -58,17 +59,17 @@ export function App() {
 					<ResumeCard />
 				</div>
 				<Keys />
-				<Dock />
+				{!cfg.machine && <Dock />}
 				{/* Across the top, over the desktop (and the Resume card); the workspace starts below it. */}
-				<TopBar />
+				{!cfg.machine && <TopBar />}
 				{/* The Display window's content while it covers the whole page, the Dock and the top bar included (phones: rotated, full screen). */}
 				<Display />
 			</div>
 			{/* The system apps' content (portals into their windows: sysapps.ts). */}
 			<Apps />
-			<Launchpad />
+			{!cfg.machine && <Launchpad />}
 			{/* While the shortcut prefix is armed (keys.ts): what each key does. */}
-			<KeysHud />
+			{!cfg.machine && <KeysHud />}
 			<PasteDialog />
 			<Confirm />
 			<Toast />

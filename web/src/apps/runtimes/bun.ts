@@ -17,7 +17,6 @@ export default {
 	needs: { net: true },
 	// The shim is on both distros; nothing to install first.
 	packages: { alpine: [], debian: [] },
-	terminal: "window",
 	commands: [
 		"echo 'The first run installs Bun into ~/.local/bin. Try: Bun.version, process.arch, await fetch(\"https://example.com\").then(r => r.status)'",
 		"bun --version",

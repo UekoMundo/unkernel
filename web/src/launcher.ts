@@ -45,21 +45,17 @@
 //    app's terminal shows only the app; it installs again when the user
 //    removed something), then the commands, each printed before it runs,
 //    under set -e, the steps written `$SUDO cmd` with sudo;
-// 3. opens a terminal named after the app (wterms.ts): a tab of the
-//    Terminal window that last had the focus, or, for an app whose terminal
-//    is the app itself (`terminal: "window"`: a REPL, an agent, a full-screen
-//    program), a Terminal window of its own (the Dock shows it with the
-//    app's icon and title while it is that window's only tab); running
-//    WRAP_SH in place of the login shell: it runs `cd <dir> && ./run.sh`
-//    and then execs the login shell, so the window stays to edit run.sh
-//    and run it again. Ctrl-C stops run.sh, not the wrapper. (Typing the
-//    command into a fresh shell lost the start of the line: the login reads
-//    or flushes input typed ahead of its prompt.) A Wayland app's terminal
-//    (`needs.wayland`) is its log: its tab opens selected, as any app's,
-//    and shows until the app's window maps and takes the focus (with
-//    `terminal: "window"` its own Terminal window is minimized at once
-//    instead); it closes when run.sh ends with status 0 (WRAP_SH's "close")
-//    and stays after a failure;
+// 3. an app that is more than its terminal (a Wayland window, a program on
+//    the display, a server: background.ts inBackground()) runs with no
+//    terminal at all, its output in run.log; a toast stands for it until its
+//    window is there, and a failure offers the log. Any other app's terminal
+//    is the app: it gets a Terminal window of its own named after it (the
+//    Dock shows it with the app's icon and title while it is that window's
+//    only tab), running WRAP_SH in place of the login shell: it runs
+//    `cd <dir> && ./run.sh` and then execs the login shell, so the window
+//    stays to edit run.sh and run it again. Ctrl-C stops run.sh, not the
+//    wrapper. (Typing the command into a fresh shell lost the start of the
+//    line: the login reads or flushes input typed ahead of its prompt.)
 // 4. with ports, waits until the guest answers http on each, opens the
 //    preview on the first (preview.ts) and toasts the others.
 // An app runs once at a time: launching one whose window is open (a window
@@ -75,6 +71,9 @@
 // but disabled, with why; so is one whose `packages` leave out this boot's
 // distro (?distro=).
 import { createElement } from "react";
+import { appWindow } from "./appwindows.ts";
+import { inBackground, startBackground, stopBackground } from "./background.ts";
+import { setDisplayShown } from "./display.ts";
 import { isPageApp, type AppDef, type AppDownload, type AppFiles, type Distro, type TerminalApp } from "./apps/types.ts";
 import { Installer } from "./components/Installer.tsx";
 import { getFile, pushFile } from "./download.ts";
@@ -451,17 +450,15 @@ async function prepare(vm: KernelHandle, d: TerminalApp, dir: string, ctl: Insta
 	}
 }
 
-// Runs in an app's window as `sh -lc WRAP_SH sh DIR SHOWN [close]`: run.sh in DIR
+// Runs in an app's window as `sh -lc WRAP_SH sh DIR SHOWN`: run.sh in DIR
 // (relative to ~, or absolute; SHOWN is how to print it), then the login
-// shell, or with "close" nothing more when run.sh ended with status 0 (the
-// terminal goes).
+// shell.
 // The INT trap (a handler, reset in children) keeps this shell alive
 // when Ctrl-C stops run.sh.
 const WRAP_SH = `trap : INT
 printf '\\033[90m$ cd %s && ./run.sh\\033[0m\\n' "$2"
 cd && cd "$1" && ./run.sh
 s=$?
-[ "$3" = close ] && [ "$s" = 0 ] && exit 0
 printf '\\033[90m[run.sh ended (status %s); ./run.sh runs it again]\\033[0m\\n' "$s"
 exec "\${SHELL:-/bin/sh}" -l`;
 
@@ -551,23 +548,52 @@ export async function launch(d: AppDef): Promise<void> {
 	}
 }
 
+/** The app's window, shown: its Wayland window, or the display. */
+function showRunning(d: TerminalApp): boolean {
+	const w = appWindow({ ...d, group: "" });
+	if (w) { wm.focus(w.id); return true; }
+	if (d.needs?.display && ui$().get().display.attached) { setDisplayShown(true); return true; }
+	return false;
+}
+
+/** How long "Opening …" shows at most, for an app whose window is slow to appear. */
+const OPENING_MS = 30000;
+
+/**
+ * Step 3 for an app that is more than its terminal (background.ts): it runs
+ * without one, and a toast stands for it until its window is there. One that
+ * runs already is shown, or where it has nothing to show, offered to stop.
+ */
+async function startApp(vm: KernelHandle, d: TerminalApp, dir: string): Promise<void> {
+	const ui = KW.ui!;
+	if (await startBackground(vm, d, dir) === "running") {
+		const shown = showRunning(d);
+		if (d.ports?.length) KW.preview?.open(d.ports[0]!);
+		if (!shown) ui.toast(`${d.title} is running`, { action: "Stop", run: () => void stopBackground(vm, d, dir), ms: 8000 });
+		return;
+	}
+	const t = ui.toast(`Opening ${d.title}…`, { ms: OPENING_MS });
+	const end = performance.now() + OPENING_MS;
+	const there = () => !!appWindow({ ...d, group: "" }) || (!!d.needs?.display && ui$().get().display.attached);
+	if (!d.ports?.length) void (async () => {
+		while (!there() && performance.now() < end) await new Promise((r) => setTimeout(r, 250));
+		ui.toastHide(t);
+	})();
+}
+
 /** Step 3 and 4 at the top of this file: the app's terminal, then its ports. */
 async function start(vm: KernelHandle, d: TerminalApp, dir: string): Promise<void> {
 	const ui = KW.ui!;
 	starting.add(d.id);
-	const wayland = !!d.needs?.wayland;
 	try {
-		// sh -l, so run.sh gets the login environment (PATH, the apk hooks).
-		// An app whose terminal is the app itself (terminal: "window") gets a Terminal window of its own.
-		// A Wayland app's terminal is only its log: it closes with the app when run.sh ends well (WRAP_SH's "close"), and stays after a failure.
-		// A Wayland app's window is the app, but it can take a while to appear: its terminal (the log) shows until then, and the window takes the focus when it maps.
-		const opened = KW.windows!.open({
-			name: d.id, file: "/bin/sh", args: ["-lc", WRAP_SH, "sh", dir.replace(/^~\//, ""), dir, ...(wayland ? ["close"] : [])],
-			window: d.terminal === "window" ? "new" : undefined,
-		});
-		starting.delete(d.id); // the terminal is listed from here on
-		const info = await opened;
-		if (wayland && d.terminal === "window" && info.window) wm.minimize(info.window);
+		if (inBackground(d)) await startApp(vm, d, dir);
+		else {
+			// sh -l, so run.sh gets the login environment (PATH, the apk hooks). The
+			// terminal is the app, so it has a Terminal window of its own.
+			const opened = KW.windows!.open({ name: d.id, file: "/bin/sh", args: ["-lc", WRAP_SH, "sh", dir.replace(/^~\//, ""), dir], window: "new" });
+			starting.delete(d.id); // the terminal is listed from here on
+			await opened;
+		}
 	} finally {
 		starting.delete(d.id);
 	}

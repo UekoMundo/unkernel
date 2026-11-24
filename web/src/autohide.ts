@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026 Pooya Parsa <pooya@pi0.io>
-// The console after boot: once the system runs, a console nobody uses
-// minimizes itself into its Dock tile (the WM's usual minimize effect), so the
-// desktop is what the page rests on. Once per load at most, and nothing says
-// so: the tile brings it back as always. boot.ts drives it (autoHide below).
+// The console after boot: once the system runs, a console nobody uses closes
+// itself (termtabs.ts closeConsole()), so the desktop is what the page rests
+// on. Once per load at most, and nothing says so: the prefix's 0 opens it. boot.ts drives it (autoHide below).
 //
 // The rule:
 // - It never applies this load with ?autohide=0, with Settings > Desktop's
@@ -41,14 +40,14 @@
 //   suspended; failed), safe mode or the base shell showing up after all.
 //   Anything that selects it (the Dock tile, the prefix's 0, an app opening a
 //   tab in its window) restores it as usual; once it is shown again by any
-//   means, this module is done. A minimized window keeps its terminal's grid
+//   means, this module is done. The closed console keeps its terminal's grid
 //   and size (only its painting pauses: wterms.ts), so output and the API
 //   (KW.screenText, KW.windows) work the same while it is hidden.
 import { KW } from "./kw.ts";
 import { store } from "./prefs.ts";
 import { phase, ui$ } from "./store.ts";
-import { CONSOLE_WIN, termTabs$ } from "./termtabs.ts";
-import { wm, wm$ } from "./wm.ts";
+import { closeConsole, CONSOLE_WIN, selectTab, termTabs$, windowOf } from "./termtabs.ts";
+import { wm$ } from "./wm.ts";
 
 /** How long the console stays up once the system runs, quiet and unused, while the page is shown (ms). */
 export const AUTO_HIDE_MS = 3000;
@@ -81,6 +80,7 @@ function never(): string | null {
 	const showcase = url.get("showcase");
 	if (showcase !== null && showcase !== "0") return "?showcase";
 	const cfg = KW.config;
+	if (cfg.machine) return "a machine's screen";
 	if (cfg.verbose) return "?verbose=1";
 	if (cfg.root === "initramfs") return "safe mode";
 	if (!cfg.distro) return "the base shell";
@@ -145,8 +145,7 @@ function onChange() {
 	if (step === "counting") {
 		if (blocker()) finish();
 	} else if (step === "hidden") {
-		const con = wm.get(CONSOLE_WIN);
-		if (!con || !con.minimized) { finish(); return; } // shown again, however
+		if (windowOf(0)) { finish(); return; } // shown again, however
 		const p = phase(ui$().get());
 		if (p === "halted" || p === "error") restore();
 	}
@@ -159,7 +158,7 @@ function fire() {
 	if (blocker()) { finish(); return; }
 	step = "hidden";
 	unlisten();
-	wm.minimize(CONSOLE_WIN); // the WM's minimize effect into its Dock tile (wmfx.ts); the stores stay subscribed (onChange)
+	closeConsole(); // the stores stay subscribed (onChange)
 }
 
 function unlisten() {
@@ -179,7 +178,7 @@ function finish() {
 /** Hidden by it: show it again (raised, focused). */
 function restore() {
 	finish();
-	wm.focus(CONSOLE_WIN);
+	selectTab(0);
 }
 
 /** boot.ts's side (see the top of this file). */

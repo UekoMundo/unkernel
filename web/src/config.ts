@@ -78,6 +78,9 @@
 //                                      guest's shells use the vtest link (guest GL as it was
 //                                      before the device, for comparison). Also none with
 //                                      ?display=0.
+//   ?ui=page                           this load only: the page's own desktop also for an image that
+//                                      has the page as its screen (Config.machine), whose display is
+//                                      then a window (to look into a machine that does not start)
 //   ?shm=0                             this load only: no kwshm device, so no Wayland desktop
 //                                      (wayland.ts; the launcher's Wayland apps are disabled).
 //                                      A resumed session keeps the device it was saved with.
@@ -161,7 +164,15 @@ export interface DistroEntry {
 	title?: string;
 	family?: string;
 	gl?: boolean;
+	ui?: Machine;
 }
+
+/**
+ * The page is the machine's screen, with none of the page's own desktop:
+ * "display", an image with a desktop of its own on the virtual GPU (the
+ * console until it starts); "console", one that is a text console.
+ */
+export type Machine = "display" | "console";
 
 /** The images offered, debian first. */
 export const DISTROS_OFFERED: readonly DistroEntry[] = DISTROS;
@@ -340,7 +351,9 @@ export interface Config {
 	glStrictWaits: boolean;
 	/** With guest GL, the virtio-gpu device (createKernel({ gpu })): unless ?gpu=0 or ?display=0. */
 	gpu: boolean;
-	/** kwshm, for the Wayland desktop (wayland.ts): unless ?shm=0 (this load's URL only). */
+	/** The page is the machine's screen (the catalog's `ui`; ?ui=page: the page's desktop all the same), or null: the page's desktop. */
+	machine: Machine | null;
+	/** kwshm, for the Wayland desktop (wayland.ts): unless ?shm=0 (this load's URL only), or the page is the machine's screen. */
 	shm: boolean;
 	/** The Wayland desktop shows GPU apps' buffers by resource (wayland.ts): unless ?wlgpu=0 (this load's URL only). */
 	wlGpu: boolean;
@@ -485,6 +498,7 @@ export function readConfig(search: string = location.search, saved: Record<strin
 	else if (distroAsked && names.includes(distroAsked)) distroParam = distroAsked;
 	else if (distroAsked) distroWhy = `distro ${distroAsked} is not an image of this page (${[...names, "none"].join(", ")}): booting ${DEFAULT_DISTRO}`;
 	const distro = DISTROS_OFFERED.find((d) => d.name === distroParam) ?? null;
+	const machine = url.get("ui") === "page" ? null : distro?.ui ?? null;
 	const autosuspend = parseAutoSuspend(params.get("autosuspend"), mobile);
 	// Guest GL: on by default where the display is (the renderer loads on the guest's first GL use).
 	const glAsked = params.has("gl");
@@ -531,9 +545,10 @@ export function readConfig(search: string = location.search, saved: Record<strin
 		cpuMax,
 		cpuSuggested,
 		shared: params.get("shared") !== "0",
-		verbose: params.get("verbose") === "1",
+		verbose: params.get("verbose") === "1" || !!machine, // a machine's boot is on its screen
 		simulate: (url.get("simulate") || "").split(",").filter(Boolean),
-		autosuspend: autosuspend.delayS,
+		// A desktop's GPU state lives in this page and cannot be saved.
+		autosuspend: machine === "display" ? null : autosuspend.delayS,
 		autosuspendParam: autosuspend.value,
 		autosuspendDefault: autoSuspendDefault(mobile),
 		askLeave: params.get("askleave") !== "0",
@@ -547,7 +562,8 @@ export function readConfig(search: string = location.search, saved: Record<strin
 		// Not settings (SETTING_NAMES): this load's URL only.
 		glStrictWaits: url.get("glwait") === "strict",
 		gpu: glParam && !glWhy && url.get("gpu") !== "0" && params.get("display") !== "0",
-		shm: url.get("shm") !== "0",
+		machine,
+		shm: url.get("shm") !== "0" && !machine,
 		wlGpu: url.get("wlgpu") !== "0",
 		mobile,
 		coarse,

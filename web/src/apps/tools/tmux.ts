@@ -78,7 +78,6 @@ export default {
 		"README": README,
 	},
 	packages: { alpine: ["tmux", "htop"], debian: ["tmux", "htop"] },
-	terminal: "window",
 	commands: [
 		"tmux has-session -t demo 2>/dev/null || ./layout.sh",
 		"tmux attach -t demo",
