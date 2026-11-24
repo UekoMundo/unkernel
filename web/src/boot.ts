@@ -28,7 +28,8 @@ import { prefetchApkIndexes } from "./apk.ts";
 import { createAudioOut } from "./audio.ts";
 import { autoHide } from "./autohide.ts";
 import { AUTO_SUSPEND_HOLD_MS, AutoSuspend, AutoSuspendSkip, LEAVE_OFFER_MS, LEAVE_STAYED_MS, Pause, SuspendSaveError, allowLeave, autoSuspendLabel, pageLeaving, quietStart, resumeAskedFor, resumeChoice, resumedNote, sessionRoom, wantLeavePrompt, type SuspendFacts } from "./autosuspend.ts";
-import { CPUS_ONCE_KEY, GL_DISTROS, INLINE_ONCE_KEY, REPO, UP_ONCE_KEY, dataSizeCap } from "./config.ts";
+import { CPUS_ONCE_KEY, INLINE_ONCE_KEY, REPO, UP_ONCE_KEY, dataSizeCap, guestGl } from "./config.ts";
+import { scoped } from "./workspace.ts";
 import { attachDataDisk, detachDataDisk, downloadKwsparse, exportDataDisk, importDataDisk, resetDataDisk, storageState, acquireDiskLock, type DataAttach } from "./data.ts";
 import { createDisplayUi } from "./display.ts";
 import { isPageChrome, ownsKeys } from "./focus.ts";
@@ -47,6 +48,7 @@ import { clearResumeRequest, setResumeRequest, takeResumeRequest } from "./ui.ts
 import { createTerminals, pasteText, setTermFont, termText, TERM_OPTIONS } from "./wterms.ts";
 import { attachWayland, waylandApi } from "./wayland.ts";
 import {
+	DATA_DISK_NAME,
 	BootError, ConsoleRouter, KernelInstance, SnapshotCommitError, WorkerKernel, bundledBoot, createKernel, loadKernelModule, openDistroDisk, serveWasiPrograms, snapshotDiskMismatch,
 	type BlockDevice, type DistroDisk, type BootProgress, type DiskSpec, type DiskState, type DownloadProgress, type Kernel, type KernelHandle, type KernelSnapshot, type SnapshotHoldDecision,
 	type GlStats, type VirglTotals,
@@ -104,7 +106,7 @@ const STEP: Record<string, string> = { kernel: "Download the kernel", compile: "
  * reloading forever. The count lives in sessionStorage (this tab only);
  * without it, auto-reboot still works but is not limited.
  */
-const AUTO_REBOOT_KEY = "kw-auto-reboot", AUTO_REBOOT_MAX = 3, AUTO_REBOOT_WINDOW = 60000;
+const AUTO_REBOOT_KEY = scoped("kw-auto-reboot"), AUTO_REBOOT_MAX = 3, AUTO_REBOOT_WINDOW = 60000;
 function autoRebootAllowed(): boolean {
 	const now = Date.now();
 	let times: number[] = [];
@@ -258,7 +260,7 @@ export function start(): void {
 		else {
 			const lock = await acquireDiskLock();
 			data = { disk: null, lock, from: "bundled in the kernel" };
-			return [{ kind: "data", template: "bundled", mode: lock.held ? "persistent" : "snapshot", size, optional: true }];
+			return [{ kind: "data", name: DATA_DISK_NAME, template: "bundled", mode: lock.held ? "persistent" : "snapshot", size, optional: true }];
 		}
 		KW.dataDisk = null;
 		showData(null, 0);
@@ -552,7 +554,7 @@ export function start(): void {
 				unquiet(); // not the resume asked for (a fresh boot): its lines after all
 				// Two steps: the kernel until it runs /init, then the base mounting the
 				// distro image (its first blocks come over HTTP) and the distro's init.
-				const user = cfg.distro ? capitalize(cfg.guest) : "the base shell";
+				const user = cfg.distro ? cfg.distro.title ?? capitalize(cfg.guest) : "the base shell";
 				write(okLine(`Started Linux${cmdlineNote()}`, ui.stageTime("boot")) + "\r\n" +
 					okLine(`Started ${user}`, ui.stageTime("userspace")) + "\r\n\r\n" + intro() + "\r\n" + replay);
 			}
@@ -687,7 +689,7 @@ export function start(): void {
 		const d = { ...sessionDevices(), shm: !!m.devices.shm };
 		if (cfg.glFromUrl) return d;
 		const gl = !!m.devices.gl, gpu = !!m.devices.gpu;
-		if (gl && (cfg.glBlocked || !GL_DISTROS.includes(cfg.guest))) return d;
+		if (gl && (cfg.glBlocked || !guestGl(cfg.distro))) return d;
 		return { ...d, gl, gpu };
 	};
 	/** This load's own GL devices, while a resume runs with the session's (a failed resume boots fresh with these). */

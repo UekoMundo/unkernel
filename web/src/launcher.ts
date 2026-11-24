@@ -89,8 +89,12 @@ import { SUDO_SH } from "./sudo.ts";
 import { termWindow } from "./termtabs.ts";
 import { wm } from "./wm.ts";
 
-const DISTROS: Distro[] = ["alpine", "debian"];
-const isDistro = (s: string): s is Distro => (DISTROS as string[]).includes(s);
+const DISTROS: Distro[] = ["alpine", "debian", "ueko"];
+
+/** The package list of `d` this boot's distro takes: its own, else its family's; undefined: the app names none for it. */
+function packagesHere(d: TerminalApp): string[] | undefined {
+	return d.packages?.[KW.config.guest as Distro] ?? d.packages?.[KW.config.family as Distro];
+}
 
 /** What had the keyboard focus when the launcher opened (null: nothing, the page's body). */
 let before: HTMLElement | null = null;
@@ -129,11 +133,10 @@ export function appDistros(d: TerminalApp): Distro[] | null {
 
 /** The packages a terminal app installs on this boot's distro. */
 export function appPackages(d: TerminalApp): string[] {
-	const g = KW.config.guest;
-	return isDistro(g) ? d.packages?.[g] ?? [] : [];
+	return packagesHere(d) ?? [];
 }
 
-const DISTRO_NAMES: Record<Distro, string> = { alpine: "Alpine", debian: "Debian" };
+const DISTRO_NAMES: Record<Distro, string> = { alpine: "Alpine", debian: "Debian", ueko: "Ueko Linux" };
 
 /** Why the app cannot run on this page, or null. */
 export function unavailable(d: AppDef): string | null {
@@ -144,8 +147,8 @@ export function unavailable(d: AppDef): string | null {
 	if (d.needs?.wayland && KW.vm && !ui$().get().wayland.available) return "needs the Wayland desktop: this boot has no kwshm (?shm=0, or a session resumed from before the desktop)";
 	const on = appDistros(d);
 	const g = KW.config.guest;
-	if (on && !(isDistro(g) && on.includes(g)))
-		return `runs on ${on.map((x) => DISTRO_NAMES[x]).join(" or ")}; this boot runs ${g === "none" ? "no distro" : isDistro(g) ? DISTRO_NAMES[g] : g} (Options, Distro)`;
+	if (on && !packagesHere(d))
+		return `runs on ${on.map((x) => DISTRO_NAMES[x]).join(" or ")}; this boot runs ${g === "none" ? "no distro" : KW.config.distro?.title ?? DISTRO_NAMES[g as Distro] ?? g} (Options, Distro)`;
 	return null;
 }
 
@@ -221,7 +224,7 @@ function installedTest(d: TerminalApp): string {
 	const pkgs = appPackages(d);
 	if (!pkgs.length) return "";
 	const pk = pkgs.map(q).join(" ");
-	if (KW.config.guest === "alpine") return `apk info -e ${pk} >/dev/null 2>&1`;
+	if (KW.config.family === "alpine") return `apk info -e ${pk} >/dev/null 2>&1`;
 	return `[ "$(dpkg-query -W -f='\${db:Status-Status}\\n' ${pk} 2>/dev/null | grep -cx installed)" = ${pkgs.length} ]`;
 }
 
@@ -238,7 +241,7 @@ export function installScript(d: TerminalApp): string | null {
 	const pkgs = appPackages(d);
 	const pk = pkgs.map(q).join(" ");
 	let install: string;
-	if (KW.config.guest === "alpine") {
+	if (KW.config.family === "alpine") {
 		install = (d.community ? step("$SUDO /etc/kw-apk-enable   # community") : "") + step(`$SUDO apk add ${pkgs.join(" ")}`, `$SUDO apk add ${pk}`);
 	} else {
 		// stdin from /dev/null: dpkg would eat what was typed ahead. The image's
@@ -421,7 +424,7 @@ async function prepare(vm: KernelHandle, d: TerminalApp, dir: string, ctl: Insta
 	if (!plan.packages) return;
 	ctl.stage("packages", null);
 	ctl.step("Installing packages…");
-	const parse = packageParser(KW.config.guest as Distro);
+	const parse = packageParser(KW.config.family as Distro);
 	let lastError = "";
 	const onLine = (raw: string) => {
 		const line = cleanLine(raw);

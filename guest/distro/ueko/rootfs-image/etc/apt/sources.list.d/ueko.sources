@@ -1,0 +1,8 @@
+# Ueko Linux's own packages. http: the web page answers it from the HTTPS
+# mirror (the packages are checked by signature), elsewhere it redirects.
+Types: deb
+URIs: http://repo.vineelsai.com/linux/ueko
+Suites: stable
+Components: main
+Architectures: arm64
+Signed-By: /usr/share/keyrings/ueko-archive-keyring.asc

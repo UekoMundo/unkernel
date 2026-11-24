@@ -9,6 +9,13 @@ import { DEFAULT_WISP_SERVERS, NetStack, fetchRoutes, wispBackend, type NetSpec 
 type Routes = Record<string, string> | null;
 
 /**
+ * The Wisp servers of a load without ?wisp=: the build's (VITE_KW_WISP, a
+ * comma-separated list: a page on another origin than unkernel.dev needs one
+ * that accepts it), else the SDK's.
+ */
+export const PAGE_WISP_SERVERS: readonly string[] = import.meta.env?.VITE_KW_WISP?.split(",").map((s: string) => s.trim()).filter(Boolean) ?? DEFAULT_WISP_SERVERS;
+
+/**
  * The page's network: a NetStack whose backend is the fastest of the Wisp
  * servers (default: the SDK's DEFAULT_WISP_SERVERS; the project's server
  * accepts only page origins on its allow list), or none when `enabled` is
@@ -17,7 +24,7 @@ type Routes = Record<string, string> | null;
  */
 export function browserNet(opts: { enabled: boolean; servers: string[] | null; routes: Routes; log?: (m: string) => void }): NetStack | undefined {
 	if (!opts.enabled) return undefined;
-	const wisp = wispBackend(opts.servers ?? [...DEFAULT_WISP_SERVERS], { log: opts.log });
+	const wisp = wispBackend(opts.servers ?? [...PAGE_WISP_SERVERS], { log: opts.log });
 	const backend = opts.routes && Object.keys(opts.routes).length ? fetchRoutes(wisp, opts.routes, { log: opts.log }) : wisp;
 	return new NetStack({ backend, log: opts.log });
 }
@@ -25,5 +32,5 @@ export function browserNet(opts: { enabled: boolean; servers: string[] | null; r
 /** The same network as a spec, for worker mode (?worker=1): the worker builds the NetStack and opens the WebSocket. */
 export function browserNetSpec(opts: { enabled: boolean; servers: string[] | null; routes: Routes }): NetSpec | undefined {
 	if (!opts.enabled) return undefined;
-	return { kind: "net", backend: { kind: "wisp", servers: opts.servers ?? [...DEFAULT_WISP_SERVERS], routes: opts.routes ?? undefined } };
+	return { kind: "net", backend: { kind: "wisp", servers: opts.servers ?? [...PAGE_WISP_SERVERS], routes: opts.routes ?? undefined } };
 }

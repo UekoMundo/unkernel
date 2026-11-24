@@ -147,6 +147,7 @@
 import { DEFAULT_MEMORY_FALLBACK_MIB, autoMemoryMiB, glUrl, kernelSmpUrl, kernelUrl, webCpuBlocker } from "./sdk.ts";
 import { distros as DISTROS } from "virtual:unkernel-kernel";
 import { autoSuspendDefault, parseAutoSuspend } from "./autosuspend.ts";
+import { scoped } from "./workspace.ts";
 
 /** A distro image the page offers (virtual:unkernel-kernel). */
 export interface DistroEntry {
@@ -156,12 +157,16 @@ export interface DistroEntry {
 	size: number;
 	/** Its /usr/lib/kw-image where the list knows it (else boot.ts reads it from the guest). */
 	imageId?: string;
+	/** From a catalog (catalog.ts): its name for people, its package family, and whether its Mesa has the virgl driver. */
+	title?: string;
+	family?: string;
+	gl?: boolean;
 }
 
 /** The images offered, debian first. */
 export const DISTROS_OFFERED: readonly DistroEntry[] = DISTROS;
 /** The ?distro= default. */
-export const DEFAULT_DISTRO = DISTROS_OFFERED.find((d) => d.name === "debian")?.name ?? DISTROS_OFFERED[0]?.name ?? "none";
+export const DEFAULT_DISTRO = DISTROS_OFFERED.find((d) => d.name === "ueko")?.name ?? DISTROS_OFFERED.find((d) => d.name === "debian")?.name ?? DISTROS_OFFERED[0]?.name ?? "none";
 
 /**
  * Plain-HTTP hosts the guest's network answers with fetch() (net.ts), each
@@ -170,10 +175,11 @@ export const DEFAULT_DISTRO = DISTROS_OFFERED.find((d) => d.name === "debian")?.
  */
 export const DEFAULT_ROUTES: Readonly<Record<string, string>> = Object.freeze({
 	"deb.debian.org": "https://mirror.unkernel.dev/deb",
+	"repo.vineelsai.com": "https://repo.vineelsai.dev",
 });
 
 /** The project's source, linked from About and the boot notes. */
-export const REPO = "https://github.com/pithings/unkernel";
+export const REPO = "https://github.com/UekoMundo/unkernel";
 
 /** The data disk sizes Settings offers, in GiB; the first is the default (the template's size). */
 export const DATA_SIZES: readonly number[] = [4, 8, 16, 32, 64];
@@ -199,7 +205,7 @@ function dataSizeParam(v: string | null): number {
 export const DEFAULT_CMDLINE = "console=hvc0 rdinit=/init";
 
 /** localStorage: the saved settings (the header above), a JSON object of strings. */
-export const SETTINGS_KEY = "kw.settings";
+export const SETTINGS_KEY = scoped("kw.settings");
 /** The settings' names. ?net=0 is read as ?wisp=0 and never saved. */
 export const SETTING_NAMES: readonly string[] = ["mem", "append", "net", "wisp", "jit", "verbose", "display", "sound", "data", "datasize", "distro", "root", "worker", "shared", "cpus", "autosuspend", "askleave", "gl"];
 
@@ -237,6 +243,8 @@ export interface Config {
 	distroWhy: string | null;
 	/** The user space this load runs: the image's name ("alpine", "debian", ...), or "none" (the base shell). */
 	guest: string;
+	/** The distro whose packages it takes (the catalog's family; else guest): "debian" on a Debian derivative. */
+	family: string;
 	/** ?append= as given, or null (the kernel bundle's own command line then, boot.ts). */
 	append: string | null;
 	memMiB: number;
@@ -339,6 +347,8 @@ export interface Config {
 
 /** The distros whose Mesa has the virgl driver (Alpine's has none). */
 export const GL_DISTROS: readonly string[] = ["debian"];
+/** Whether guest GL works on this image: the catalog says, else GL_DISTROS. */
+export const guestGl = (d: DistroEntry | null): boolean => d?.gl ?? GL_DISTROS.includes(d?.name ?? "none");
 
 /** The GL option's default: on where the display is (?display=0: off). */
 export function glDefault(display: boolean): boolean {
@@ -395,11 +405,11 @@ export function webkitEngine(ua = navigator.userAgent): boolean {
 }
 
 /** sessionStorage: boot this tab's next load on one CPU (boot.ts bootUpOnce()), with why. */
-export const UP_ONCE_KEY = "kw-up-once";
+export const UP_ONCE_KEY = scoped("kw-up-once");
 /** sessionStorage: boot this tab's next load on the page's thread, one CPU (boot.ts bootUpOnce(..., inline)), with why. */
-export const INLINE_ONCE_KEY = "kw-inline-once";
+export const INLINE_ONCE_KEY = scoped("kw-inline-once");
 /** sessionStorage: boot this tab's next load on this many CPUs, to resume the session suspended on them (boot.ts offerResumeCpus()). */
-export const CPUS_ONCE_KEY = "kw-cpus-once";
+export const CPUS_ONCE_KEY = scoped("kw-cpus-once");
 function takeOnce(key: string): string | null {
 	try {
 		const v = sessionStorage.getItem(key);
@@ -471,7 +481,7 @@ export function readConfig(search: string = location.search, saved: Record<strin
 	const glAsked = params.has("gl");
 	const glParam = glAsked ? params.get("gl") === "1" : glDefault(params.get("display") !== "0");
 	const glBlocked = glBlocker();
-	const glWhy = !glParam ? null : glBlocked ?? (GL_DISTROS.includes(distro?.name ?? "none") ? null : `guest GL needs ${GL_DISTROS.join(" or ")} (its Mesa has the virgl driver), not ${distro?.name ?? "the base shell"}`);
+	const glWhy = !glParam ? null : glBlocked ?? (guestGl(distro) ? null : `guest GL needs ${GL_DISTROS.join(" or ")} (its Mesa has the virgl driver), not ${distro?.name ?? "the base shell"}`);
 	return {
 		settings: Object.fromEntries(params),
 		kernelUrl: kernelUrl.pathname,
@@ -479,6 +489,7 @@ export function readConfig(search: string = location.search, saved: Record<strin
 		distroParam,
 		distroWhy,
 		guest: distro?.name ?? "none",
+		family: distro?.family ?? distro?.name ?? "none",
 		append: append || null,
 		memMiB: fixed ? Number(memParam) : auto.mib,
 		memWhy: fixed ? `set to ${memParam} MiB` : auto.why,

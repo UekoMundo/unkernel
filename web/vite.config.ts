@@ -255,12 +255,20 @@ export default defineConfig({
 				}
 				const images = dev ? await (devImages ??= rescanImages(s)) : s.distros;
 				const distros = images.map(({ name, url, size, imageId }) => ({ name, url, size, ...(imageId ? { imageId } : {}) }));
-				return [
-					`export const kernelUrl = ${up};`,
-					`export const kernelSmpUrl = ${smp};`,
-					`export const glUrl = ${gl};`,
-					`export const distros = ${JSON.stringify(distros)};`,
-				].join("\n");
+				// A build with a catalog: the images (and apps) are its, read when the page loads.
+				const catalog = !dev && process.env.KW_CATALOG;
+				const kernel = [`export const kernelUrl = ${up};`, `export const kernelSmpUrl = ${smp};`, `export const glUrl = ${gl};`];
+				if (catalog) {
+					const abi = Number(/^#define KW_ABI_VERSION (\d+)$/m.exec(await readFile(path.join(import.meta.dirname, "../include/kw_emu.h"), "utf8"))![1]);
+					return [
+						`import { loadCatalog } from ${JSON.stringify(path.join(import.meta.dirname, "src/catalog.ts"))};`,
+						...kernel,
+						`const catalog = await loadCatalog(${JSON.stringify(new URL(catalog).href)}, ${abi});`,
+						"export const distros = catalog.images;",
+						"export const apps = catalog.apps;",
+					].join("\n");
+				}
+				return [...kernel, `export const distros = ${JSON.stringify(distros)};`, "export const apps = [];"].join("\n");
 			},
 		},
 		{
@@ -379,6 +387,7 @@ export default defineConfig({
 					if (!output) throw new Error("[kernel] Nitro gave no output directory for the images");
 					const dir = path.join(output.publicDir, "distros");
 					await rm(dir, { recursive: true, force: true });
+					if (process.env.KW_CATALOG) return; // the catalog's images
 					await mkdir(dir, { recursive: true });
 					for (const d of s.distros) {
 						const to = path.join(dir, servedName(d));

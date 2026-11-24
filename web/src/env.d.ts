@@ -23,5 +23,7 @@ declare module "virtual:unkernel-kernel" {
 	export const kernelUrl: URL;
 	export const kernelSmpUrl: URL | null;
 	export const glUrl: URL | null;
-	export const distros: { name: string; url: string; size: number; imageId?: string }[];
+	export const distros: { name: string; url: string; size: number; imageId?: string; title?: string; family?: string; gl?: boolean }[];
+	/** The catalog's apps (a build with KW_CATALOG; else none). */
+	export const apps: import("./catalog.ts").CatalogApp[];
 }

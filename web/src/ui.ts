@@ -8,6 +8,7 @@
 // The system apps' windows (Settings, System) are sysapps.ts's.
 import { flushSync } from "react-dom";
 import { RESUME_AUTO, RESUME_BY_HAND, RESUME_FRESH, allowLeave, resumeAskedFor, resumeRequestKind, type ResumeRequest } from "./autosuspend.ts";
+import { scoped } from "./workspace.ts";
 import { DATA_SIZE_DEFAULT, DEFAULT_CMDLINE, DEFAULT_DISTRO, SETTING_NAMES, glDefault, saveSettings, type Config } from "./config.ts";
 import { KW, type KWError } from "./kw.ts";
 import { store } from "./prefs.ts";
@@ -25,7 +26,7 @@ export type StageState = "pending" | "active" | "done" | "fail" | "skip";
  * (autosuspend.ts resumeChoice()). A plain load resumes a session it can
  * too. Every resume is quiet and ends in the same toast (boot.ts).
  */
-const RESUME_KEY = "kw-resume";
+const RESUME_KEY = scoped("kw-resume");
 /**
  * Resume on this tab's next load. `auto`: after a suspend in the background
  * (boot.ts; a reload after the browser discarded the tab resumes too).
@@ -211,7 +212,7 @@ export function createUi(cfg: Config) {
 	};
 	const BOOT_STEP: Record<string, string> = {
 		preflight: "Checking the browser", kernel: "Downloading the kernel", compile: "Compiling the kernel", memory: "Allocating memory",
-		boot: "Starting Linux", userspace: `Starting ${cfg.distro ? capitalize(cfg.guest) : "the base shell"}`,
+		boot: "Starting Linux", userspace: `Starting ${cfg.distro ? cfg.distro.title ?? capitalize(cfg.guest) : "the base shell"}`,
 	};
 	let downloadPart = 0, downloadT = 0;
 	const setBoot = (patch: Partial<UiState["boot"]>) => $.set((s) => ({ boot: { ...s.boot, ...patch } }));

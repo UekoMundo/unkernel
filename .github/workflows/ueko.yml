@@ -1,0 +1,229 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Vineel Sai
+#
+# Ueko: the workspaces' distro images (guest/distro/*/Dockerfile, and
+# upstream's Alpine and Debian of the pinned release), Ueko Linux's packages
+# (distro/apps/) and the session page (web/). On the branch ueko:
+#   - images and packages go to repo.vineelsai.com/linux (publish.sh)
+#   - the page becomes a GitHub release page-<commit>, which apps/linux in
+#     UekoMundo/kenkon pins
+# A push builds what it touched; a run by hand builds the images it names.
+# The weekly run builds all of them again for their distributions' updates.
+name: Ueko
+
+on:
+  push:
+    branches: [ueko]
+    paths: ["distro/**", "guest/**", "web/**", "js/**", "include/**", ".github/workflows/ueko.yml"]
+  pull_request:
+    branches: [ueko]
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      images:
+        description: "Images to build: all, none, or names (ueko ubuntu fedora arch kali)"
+        default: all
+      page:
+        description: Build and release the session page
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ueko-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      images: ${{ steps.plan.outputs.images }}
+      page: ${{ steps.plan.outputs.page }}
+      upstream: ${{ steps.plan.outputs.upstream }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          ASKED: ${{ inputs.images }}
+          PAGE: ${{ inputs.page }}
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          own="$(cd guest/distro && ls -d */Dockerfile | xargs -n1 dirname | sort)"
+          case $EVENT in
+          workflow_dispatch) images=$ASKED; page=$PAGE; upstream=true ;;
+          schedule) images=all; page=false; upstream=false ;;
+          *)
+            images= page=false upstream=false
+            if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then images=all page=true upstream=true; else
+              changed="$(git diff --name-only "$BASE" HEAD)"
+              has() { grep -qE "$1" <<< "$changed"; }
+              for n in $own; do has "^guest/distro/$n/" && images+=" $n"; done
+              has '^distro/apps/(ueko-base|ueko-tools)/' && images+=" ueko"
+              has '^(guest/(lib|src|tools|common|base)/|distro/kernel.json|distro/tools/smoke.sh|guest/distro/debian/(rootfs|pins))' && images=all
+              has '^(distro/kernel.json|distro/catalog.json)' && upstream=true
+              has '^(web|js|include)/|^distro/kernel.json' && page=true
+            fi ;;
+          esac
+          [ "$images" != all ] || images=$own
+          [ "$images" != none ] || images=
+          for n in $images; do grep -qx "$n" <<< "$own" || { echo "::error::no image $n"; exit 1; }; done
+          {
+            echo "images=$(printf '%s\n' $images | sort -u | jq -Rnc '[inputs | select(. != "")]')"
+            echo "page=$page"
+            echo "upstream=$upstream"
+          } | tee -a "$GITHUB_OUTPUT"
+
+  apps:
+    needs: plan
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Tool tests
+        run: node --test distro/tools/*.test.mjs
+      - name: The packages to publish
+        run: node distro/tools/build-apps.mjs --out "$RUNNER_TEMP/new"
+      - name: The packages the Ueko image carries
+        run: node distro/tools/build-apps.mjs --all --out "$RUNNER_TEMP/image" ueko-base ueko-tools
+      - run: mkdir -p "$RUNNER_TEMP"/{new,image}/debs && touch "$RUNNER_TEMP"/{new,image}/debs/.keep
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with: { name: debs-new, path: "${{ runner.temp }}/new/debs", include-hidden-files: true }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with: { name: debs-image, path: "${{ runner.temp }}/image/debs", include-hidden-files: true }
+
+  image:
+    needs: [plan, apps]
+    if: needs.plan.outputs.images != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        name: ${{ fromJSON(needs.plan.outputs.images) }}
+    name: image (${{ matrix.name }})
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          version: 0.16.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          package-manager-cache: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with: { name: debs-image, path: guest/distro/ueko/debs }
+      - name: The pinned kernel
+        run: distro/tools/kernel.sh
+      - name: Build
+        run: |
+          rm -f guest/distro/ueko/debs/.keep
+          KW_DISTRO_TRACE=1 guest/build.sh distro "${{ matrix.name }}"
+      - name: Boot it
+        run: distro/tools/smoke.sh vendor/build/bundle/unkernel.wasm "vendor/build/distro/${{ matrix.name }}.erofs"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: image-${{ matrix.name }}
+          path: vendor/build/distro/${{ matrix.name }}.erofs
+          compression-level: 0
+          retention-days: 7
+
+  page:
+    needs: plan
+    if: needs.plan.outputs.page == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck:web
+      - run: node --test web/test/ueko.test.ts
+      - name: Build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: distro/tools/page.sh "$RUNNER_TEMP/page.tar.gz"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with: { name: page, path: "${{ runner.temp }}/page.tar.gz", compression-level: 0 }
+
+  publish:
+    needs: [plan, apps, image, page]
+    if: ${{ !cancelled() && needs.apps.result == 'success' && !contains(needs.*.result, 'failure') && github.event_name != 'pull_request' && github.ref == 'refs/heads/ueko' && github.repository == 'UekoMundo/unkernel' }}
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: ueko-publish
+      cancel-in-progress: false
+    permissions:
+      contents: write # the page's release
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with: { path: in }
+      - name: Collect
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPSTREAM: ${{ needs.plan.outputs.upstream }}
+        run: |
+          mkdir -p images
+          find in -name '*.erofs' -exec mv {} images/ \;
+          if [ "$UPSTREAM" = true ]; then
+            gh release download "$(jq -r .tag distro/kernel.json)" -R "$(jq -r .repository distro/kernel.json)" -p '*.erofs' -p distros.json -D upstream
+            jq -r '.distros[] | "\(.sha256)  upstream/\(.file)"' upstream/distros.json | sha256sum -c
+            mv upstream/*.erofs images/
+          fi
+          ls -l images in/debs-new
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.UEKO_PUBLISH_ROLE }}
+          aws-region: ap-south-1
+          role-duration-seconds: 1800
+          role-session-name: ueko-${{ github.run_id }}
+      - name: Publish packages and images
+        env:
+          KEY: ${{ secrets.UEKO_ARCHIVE_KEY }}
+          UEKO_ARCHIVE_KEY_ID: ${{ vars.UEKO_ARCHIVE_KEY_ID }}
+        run: |
+          gpg --batch --quiet --import <<< "$KEY"
+          unset KEY
+          distro/tools/publish.sh in/debs-new images
+      - name: Release the page
+        if: needs.page.result == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="page-${GITHUB_SHA::12}"
+          gh release view "$tag" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 ||
+            gh release create "$tag" in/page/page.tar.gz -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$tag" \
+              --notes "The session page of $GITHUB_SHA, sha256 $(sha256sum < in/page/page.tar.gz | cut -d' ' -f1)"

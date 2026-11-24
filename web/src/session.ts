@@ -27,11 +27,12 @@
 // page suspends a hidden tab instead (autosuspend.ts). A snapshot taken
 // without stopping would not help: the guest keeps writing /data, which
 // makes it unrestorable within seconds.
+import { wsSessionDb } from "./workspace.ts";
 import { decodeSnapshot, encodeSnapshot, type DiskSnapshotState, type KernelSnapshot } from "./sdk.ts";
 
 const DB_PREFIX = "kwsnap:session-v";
 const DB_VERSION = 2;
-const DB = `${DB_PREFIX}${DB_VERSION}`;
+const DB = wsSessionDb(`${DB_PREFIX}${DB_VERSION}`);
 const STORE = "session";
 
 let oldDropped = false;

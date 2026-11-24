@@ -1,0 +1,9 @@
+[
+  { "name": "ueko", "title": "Ueko Linux", "version": "1.0", "desc": "Our own distro: Debian with Ueko's app repository and a Wayland desktop.", "family": "debian", "gl": true, "color": "#16a34a", "mem": 2048 },
+  { "name": "alpine", "title": "Alpine Linux", "version": "3.24", "desc": "Tiny and instant. musl, busybox and apk.", "family": "alpine", "gl": false, "color": "#0d597f", "mem": 512 },
+  { "name": "debian", "title": "Debian", "version": "13", "desc": "Debian trixie with apt and the full launcher.", "family": "debian", "gl": true, "color": "#a80030", "mem": 2048 },
+  { "name": "ubuntu", "title": "Ubuntu", "version": "26.04 LTS", "desc": "Ubuntu's userland with apt.", "family": "ubuntu", "gl": true, "color": "#e95420", "mem": 2048 },
+  { "name": "fedora", "title": "Fedora", "version": "44", "desc": "Fedora's userland with dnf.", "family": "fedora", "gl": true, "color": "#3c6eb4", "mem": 2048 },
+  { "name": "arch", "title": "Arch Linux ARM", "version": "rolling", "desc": "Rolling release with pacman.", "family": "arch", "gl": true, "color": "#1793d1", "mem": 2048 },
+  { "name": "kali", "title": "Kali Linux", "version": "rolling", "desc": "Security tools, with nmap and friends preinstalled.", "family": "kali", "gl": false, "color": "#367bf0", "mem": 2048 }
+]

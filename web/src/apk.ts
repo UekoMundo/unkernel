@@ -38,7 +38,8 @@
 
 import { backendConnect } from "./download.ts";
 import { fmtMiB } from "./format.ts";
-import { DEFAULT_WISP_SERVERS, fetchOver, wispBackend, type GuestConnect, type KernelHandle } from "./sdk.ts";
+import { PAGE_WISP_SERVERS } from "./net.ts";
+import { fetchOver, wispBackend, type GuestConnect, type KernelHandle } from "./sdk.ts";
 import { execAsRoot } from "./sudo.ts";
 
 /** Get an index again when the guest's copy is older than this (apk's own limit is 4 h). */
@@ -177,7 +178,7 @@ export async function prefetchApkIndexes(vm: KernelHandle, opts: { servers: stri
 
 		// Opened only if something is not in the browser cache. Its own connection, also in worker
 		// mode, where the guest's is in the worker. No log: its "guest network offline" would be wrong here.
-		const connect = (host: string) => () => backendConnect(backend ??= wispBackend(opts.servers ?? [...DEFAULT_WISP_SERVERS]), host);
+		const connect = (host: string) => () => backendConnect(backend ??= wispBackend(opts.servers ?? [...PAGE_WISP_SERVERS]), host);
 		const signal = AbortSignal.timeout(FETCH_TIMEOUT_MS);
 		const got = await Promise.all(wanted.map(async ({ http, name }) => {
 			try {

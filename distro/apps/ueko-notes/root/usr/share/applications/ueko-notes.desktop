@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Notes
+Comment=Plain-text notes in ~/Notes
+Exec=ueko-notes
+Categories=Utility;

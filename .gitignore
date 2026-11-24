@@ -10,3 +10,5 @@ web/.vercel/
 web/kernel/
 web/public/distros/
 tmp/
+guest/distro/ueko/debs/
+distro/out/

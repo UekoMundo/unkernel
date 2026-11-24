@@ -1,0 +1,91 @@
+#!/usr/bin/python3
+"""Notes: one text file per note in ~/Notes, saved as you type."""
+import pathlib
+import time
+
+import gi
+
+gi.require_version("Gtk", "3.0")
+from gi.repository import GLib, Gtk  # noqa: E402
+
+DIR = pathlib.Path.home() / "Notes"
+
+
+class Notes(Gtk.Window):
+    def __init__(self):
+        super().__init__(title="Notes", default_width=760, default_height=480)
+        DIR.mkdir(exist_ok=True)
+        self.path = None
+        self.pending = 0
+        bar = Gtk.HeaderBar(title="Notes", show_close_button=True)
+        new = Gtk.Button(label="New")
+        new.connect("clicked", lambda _: self.create())
+        bar.pack_start(new)
+        self.set_titlebar(bar)
+        self.list = Gtk.ListBox()
+        self.list.connect("row-selected", lambda _, row: row and self.open(row.path))
+        self.text = Gtk.TextView(wrap_mode=Gtk.WrapMode.WORD_CHAR, monospace=True,
+                                 left_margin=12, right_margin=12, top_margin=12, sensitive=False)
+        self.text.get_buffer().connect("changed", lambda _: self.changed())
+        panes = Gtk.Paned(position=200)
+        for child, resize in ((self.list, False), (self.text, True)):
+            scroll = Gtk.ScrolledWindow()
+            scroll.add(child)
+            panes.pack1(scroll, resize, False) if child is self.list else panes.pack2(scroll, resize, False)
+        self.add(panes)
+        self.connect("destroy", self.quit)
+        self.refresh()
+
+    def refresh(self):
+        for row in self.list.get_children():
+            self.list.remove(row)
+        for p in sorted(DIR.glob("*.txt"), key=lambda p: p.stat().st_mtime, reverse=True):
+            row = Gtk.ListBoxRow()
+            row.path = p
+            first = p.read_text(errors="replace").strip().split("\n")[0][:40]
+            row.add(Gtk.Label(label=first or "New note", xalign=0, margin=8))
+            self.list.add(row)
+            if p == self.path:
+                self.list.select_row(row)
+        self.list.show_all()
+
+    def open(self, path):
+        if path == self.path:
+            return
+        self.save()
+        self.path = None  # the load below is not a change
+        self.text.get_buffer().set_text(path.read_text(errors="replace"))
+        self.path = path
+        self.text.set_sensitive(True)
+        self.text.grab_focus()
+
+    def create(self):
+        self.save()
+        path = DIR / f"{time.strftime('%Y%m%d-%H%M%S')}.txt"
+        path.touch()
+        self.open(path)
+        self.refresh()
+
+    def changed(self):
+        if self.path:
+            if self.pending:
+                GLib.source_remove(self.pending)
+            self.pending = GLib.timeout_add(500, self.save)
+
+    def save(self):
+        if self.pending:
+            GLib.source_remove(self.pending)
+            self.pending = 0
+            b = self.text.get_buffer()
+            self.path.write_text(b.get_text(*b.get_bounds(), True))
+            self.refresh()
+        return False
+
+    def quit(self, _):
+        self.save()
+        Gtk.main_quit()
+
+
+GLib.set_prgname("ueko-notes")
+Notes().show_all()
+Gtk.main()

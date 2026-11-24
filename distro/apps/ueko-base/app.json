@@ -1,0 +1,10 @@
+{
+  "id": "ueko-base",
+  "version": "1.0",
+  "title": "Ueko base system",
+  "desc": "Ueko Linux's archive keyring, and what every Ueko system has",
+  "depends": ["ueko-tools"],
+  "copy": {
+    "/usr/share/keyrings/ueko-archive-keyring.asc": "guest/distro/ueko/rootfs-image/usr/share/keyrings/ueko-archive-keyring.asc"
+  }
+}

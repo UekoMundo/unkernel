@@ -1,0 +1,13 @@
+{
+  "id": "ueko-notes",
+  "version": "1.0",
+  "title": "Notes",
+  "desc": "A small notes app: one text file per note in ~/Notes, saved as you type",
+  "depends": ["python3", "python3-gi", "gir1.2-gtk-3.0", "fonts-dejavu-core"],
+  "command": "ueko-notes",
+  "icon": "📝",
+  "colors": ["#f59e0b", "#78350f"],
+  "wayland": true,
+  "waylandIds": ["ueko-notes"],
+  "launcher": true
+}

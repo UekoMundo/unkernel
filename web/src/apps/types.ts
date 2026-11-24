@@ -78,8 +78,8 @@ export interface AppDownload extends FileSpec {
 	unless?: string;
 }
 
-/** The distro images an app can name packages for. */
-export type Distro = "alpine" | "debian";
+/** The distro images an app can name packages for; on a derivative (the catalog's `family`) the family's stand in for its own. */
+export type Distro = "alpine" | "debian" | "ueko";
 
 interface AppBase {
 	id: string;

@@ -1,0 +1,41 @@
+#!/bin/bash
+# ueko: Ueko Linux's apps from a shell. Each is an apt package of section
+# "ueko" in repo.vineelsai.com/linux/ueko.
+set -euo pipefail
+
+root() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo "$@"; fi; }
+src=(-o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ueko.sources -o Dir::Etc::sourceparts=- -o APT::Get::List-Cleanup=0)
+refresh() { root apt-get update -q "${src[@]}" >/dev/null; }
+
+usage() {
+	cat <<EOF
+ueko apps              Ueko's apps (* installed)
+ueko install APP...    install apps
+ueko remove APP...     remove apps
+ueko update            update the installed ones
+ueko info              about this system
+EOF
+}
+
+case ${1:-} in
+apps)
+	refresh
+	for list in /var/lib/apt/lists/repo.vineelsai.com_linux_ueko_*Packages*; do
+		[ -e "$list" ] || { echo "ueko: no package list (is the network up?)" >&2; exit 1; }
+		/usr/lib/apt/apt-helper cat-file "$list"
+	done | awk '/^Package: /{p=$2} /^Version: /{v=$2} /^Description: /{sub(/^Description: /,""); print p "\t" v "\t" $0}' |
+	sort -V | awk -F'\t' '{last[$1]=$0} END {for (p in last) print last[p]}' | sort |
+	while IFS=$'\t' read -r p v d; do
+		m=' '
+		[ "$(dpkg-query -W -f='${db:Status-Status}' "$p" 2>/dev/null || true)" != installed ] || m='*'
+		printf '%s %-18s %-8s %s\n' "$m" "$p" "$v" "$d"
+	done ;;
+install) shift; [ $# -gt 0 ] || { usage >&2; exit 2; }; refresh; root apt-get install -y "$@" ;;
+remove) shift; [ $# -gt 0 ] || { usage >&2; exit 2; }; root apt-get remove -y "$@" ;;
+update)
+	refresh
+	mapfile -t pkgs < <(dpkg-query -W -f='${db:Status-Status} ${Section} ${Package}\n' | awk '$1 == "installed" && $2 == "ueko" {print $3}')
+	[ ${#pkgs[@]} = 0 ] || root apt-get install -y --only-upgrade "${pkgs[@]}" ;;
+info) . /etc/os-release; echo "$PRETTY_NAME"; uname -srm; cat /usr/lib/kw-image 2>/dev/null || true ;;
+*) usage; [ -z "${1:-}" ] || exit 2 ;;
+esac

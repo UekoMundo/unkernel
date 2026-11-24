@@ -10,13 +10,21 @@
 import { createKernelOn, type CreateKernelOptions, type KernelHandle, type KernelInstance, type WorkerOption } from "../../js/core/instance.ts";
 import type { WorkerKernel } from "../../js/core/worker-host.ts";
 import { webPlatform } from "../../js/web/platform.ts";
+import { DATA_DISK_NAME as DISK_NAME, importDataDisk as importDisk, openDataDisk as openDisk, resetDataDisk as resetDisk } from "../../js/web/disk.ts";
+import { wsDataDisk } from "./workspace.ts";
 import { glUrl, kernelSmpUrl, kernelUrl } from "virtual:unkernel-kernel";
 
 export * from "../../js/core/index.ts";
 export { DEFAULT_MEMORY_FALLBACK_MIB, autoMemoryMiB } from "../../js/web/memory.ts";
-export { DATA_DISK_NAME, importDataDisk, openDataDisk, openDistroDisk, resetDataDisk } from "../../js/web/disk.ts";
+export { openDistroDisk } from "../../js/web/disk.ts";
 export { webCpuBlocker } from "../../js/web/cpu.ts";
 export { serveWasiPrograms } from "../../js/web/wasi.ts";
+
+/** The data disk's name: this workspace's (workspace.ts), which the functions below use. */
+export const DATA_DISK_NAME = wsDataDisk(DISK_NAME);
+export const openDataDisk = (o: Parameters<typeof openDisk>[0]): ReturnType<typeof openDisk> => openDisk({ name: DATA_DISK_NAME, ...o });
+export const importDataDisk = (bytes: Uint8Array | ArrayBuffer, o: Parameters<typeof importDisk>[1] = {}): ReturnType<typeof importDisk> => importDisk(bytes, { name: DATA_DISK_NAME, ...o });
+export const resetDataDisk = (o: Parameters<typeof resetDisk>[0] = {}): ReturnType<typeof resetDisk> => resetDisk({ name: DATA_DISK_NAME, ...o });
 
 /**
  * The kernel the page runs on one CPU: the base bundle (vmlinux32.wasm +

@@ -1,0 +1,7 @@
+{
+  "id": "ueko-tools",
+  "version": "1.0",
+  "title": "Ueko tools",
+  "desc": "The ueko command: list, install and update Ueko's apps",
+  "depends": ["apt", "bash"]
+}
