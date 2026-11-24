@@ -16,6 +16,7 @@ oci_extra() {
 	local stage=$2 codename archive suite path sum lists="$dl/debian-lists" contents=()
 	# Debian's image's own files: services, the docker shim, apt's settings and
 	# the package that provides a missing command (its map: Debian's pins).
+	rm -f "$stage/etc/sudoers.d/kw-user"   # read-only by now
 	install_tree "$guest/distro/debian/rootfs" "$stage"
 	chmod 440 "$stage/etc/sudoers.d/kw-user"
 	. "$guest/distro/debian/pins.sh"
