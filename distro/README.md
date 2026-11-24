@@ -62,6 +62,11 @@ distro/tools/smoke.sh vendor/build/bundle/unkernel.wasm vendor/build/distro/NAME
 node js/cli.ts --kernel vendor/build/bundle/unkernel.wasm --distro vendor/build/distro/NAME.erofs
 ```
 
+Package managers work without the network proxy where the distro's host is in
+`DEFAULT_ROUTES` (`web/src/config.ts`): the page answers plain HTTP to it from
+a CORS mirror. A new host needs a mirror in Kenkon
+(`VSCloud:packageRepo` `mirrors`), a route, and `http://` sources in the image.
+
 ## Follow upstream
 
 Fast-forward `main`, merge it into `ueko`, then move `distro/kernel.json` to the

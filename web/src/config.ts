@@ -170,12 +170,21 @@ export const DEFAULT_DISTRO = DISTROS_OFFERED.find((d) => d.name === "ueko")?.na
 
 /**
  * Plain-HTTP hosts the guest's network answers with fetch() (net.ts), each
- * from a CORS-enabled mirror with the same paths under the base: Debian's
- * apt sources. ?routes=0 turns them off.
+ * from a CORS-enabled mirror with the same paths under the base: the
+ * distros' package repositories (repo.vineelsai.dev/mirror is VSCloud's
+ * package_mirror.go, which answers only its own sites' pages). ?routes=0
+ * turns them off. The images' sources are plain http, which their package
+ * managers' signatures allow (apt and apk: indexes; dnf and pacman: packages).
  */
 export const DEFAULT_ROUTES: Readonly<Record<string, string>> = Object.freeze({
 	"deb.debian.org": "https://mirror.unkernel.dev/deb",
 	"repo.vineelsai.com": "https://repo.vineelsai.dev",
+	"archive.ubuntu.com": "https://repo.vineelsai.dev/mirror/ubuntu",
+	"security.ubuntu.com": "https://repo.vineelsai.dev/mirror/ubuntu", // the archive has the security pocket too
+	"http.kali.org": "https://repo.vineelsai.dev/mirror/kali",
+	"dl-cdn.alpinelinux.org": "https://repo.vineelsai.dev/mirror/alpine",
+	"dl.fedoraproject.org": "https://repo.vineelsai.dev/mirror/fedora",
+	"mirror.archlinuxarm.org": "https://repo.vineelsai.dev/mirror/arch",
 });
 
 /** The project's source, linked from About and the boot notes. */

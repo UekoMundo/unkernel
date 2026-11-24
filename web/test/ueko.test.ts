@@ -3,6 +3,7 @@
 // The catalog and the workspaces' names: node --test web/test/ueko.test.ts
 import assert from "node:assert/strict";
 import test from "node:test";
+import { fetchRoutes } from "../../js/core/net-fetch.ts";
 import { parseCatalog } from "../src/catalog.ts";
 import { scoped, workspaceId, wsDataDisk, wsSessionDb } from "../src/workspace.ts";
 
@@ -31,4 +32,22 @@ test("a workspace's names never meet another's", () => {
 	assert.deepEqual(names(null), ["kw.settings", "kwdata", "kwsnap:session-v2"]);
 	assert.deepEqual(names("a"), ["kw.settings@a", "ws-a", "kwsnap:session-v2@a"]);
 	assert.equal(new Set([...names(null), ...names("a"), ...names("a-v1")]).size, 9);
+});
+
+test("a routed host's other ports go to the inner backend by name", async () => {
+	const seen: string[] = [];
+	const inner = {
+		lookup: async () => ["198.18.0.1"],
+		connect: ({ host, port }: { host: string; port: number }) => { seen.push(`${host}:${port}`); return {} as never; },
+	};
+	const ev = { onConnect() {}, onData() {}, onEnd() {}, onDrain() {}, onClose() {} };
+	const net = fetchRoutes(inner as never, { "archive.example": "https://mirror.example/x" });
+	const [ip] = await net.lookup("archive.example");
+	net.connect({ host: ip!, port: 443 } as never, ev as never);
+	net.connect({ host: ip!, port: 80 } as never, ev as never);
+	net.connect({ host: "198.18.0.9", port: 443 } as never, ev as never);
+	assert.deepEqual(seen, ["archive.example:443", "198.18.0.9:443"]);
+	net.close();
+	const err = await new Promise((onClose) => fetchRoutes(undefined, { "archive.example": "https://mirror.example/x" }).connect({ host: ip!, port: 443 } as never, { ...ev, onClose } as never));
+	assert.match(String(err), /port 80 only/);
 });

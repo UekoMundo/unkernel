@@ -11,8 +11,9 @@
 // until it is enabled; kw-apk-install reads it to decide whether to enable
 // it, so a command from community needs no index download in the guest.
 //
-// - Alpine's mirrors send no CORS headers, so the page cannot fetch() them.
-//   The fetch goes through a Wisp stream as plain http instead. That is
+// - A mirror that is in the route table (config.ts DEFAULT_ROUTES) is read
+//   with fetch() from its CORS mirror. Others send no CORS headers, so the
+//   fetch goes through a Wisp stream as plain http instead. That is
 //   safe because apk checks an index's signature every time it loads one
 //   from the cache, and refuses a bad one.
 // - The page keeps each index in the Cache API (CACHE_NAME, keyed by the http
@@ -23,7 +24,7 @@
 //   are deleted. Without the Cache API (plain http pages, some private
 //   windows) every index is downloaded.
 // - apk 3 names a cached index APKINDEX.<first 4 bytes of sha1(URL), hex>
-//   .tar.gz, with the https index URL from /etc/apk/repositories. It uses the
+//   .tar.gz, with the index URL from /etc/apk/repositories. It uses the
 //   file as is while its mtime is less than 4 h old, and fetches again after
 //   that. The push sets the mtime to the validation time, so apk's limit
 //   counts from when the mirror last confirmed the index, not from the push.
@@ -111,10 +112,10 @@ async function openCache(): Promise<Cache | null> {
 type Source = "cache" | "revalidated" | "downloaded";
 
 /**
- * One index: from the browser cache while fresh, else from the mirror over
- * `connect` (conditional when cached), stored back in the cache.
+ * One index: from the browser cache while fresh, else from the mirror with
+ * `get` (conditional when cached), stored back in the cache.
  */
-async function getIndex(cache: Cache | null, http: URL, connect: () => GuestConnect, signal: AbortSignal):
+async function getIndex(cache: Cache | null, http: URL, get: (init: { headers: Headers; signal: AbortSignal }) => Promise<Response>, signal: AbortSignal):
 	Promise<{ bytes: Uint8Array; validated: number; source: Source }> {
 	const key = http.href;
 	const hit = await cache?.match(key).catch(() => undefined);
@@ -126,7 +127,7 @@ async function getIndex(cache: Cache | null, http: URL, connect: () => GuestConn
 	const etag = hit?.headers.get("etag"), lastModified = hit?.headers.get("last-modified");
 	if (etag) headers.set("if-none-match", etag);
 	if (lastModified) headers.set("if-modified-since", lastModified);
-	const res = await fetchOver(connect(), http, { signal, headers });
+	const res = await get({ signal, headers });
 	let bytes: Uint8Array, source: Source;
 	if (res.status === 304 && hit) {
 		await res.body?.cancel();
@@ -151,7 +152,7 @@ async function getIndex(cache: Cache | null, http: URL, connect: () => GuestConn
  * Push fresh apk indexes into the guest (see the top of this file). Resolves
  * when done; never rejects (failures go to `log`).
  */
-export async function prefetchApkIndexes(vm: KernelHandle, opts: { servers: string[] | null; log: (m: string) => void }): Promise<void> {
+export async function prefetchApkIndexes(vm: KernelHandle, opts: { servers: string[] | null; routes: Record<string, string> | null; log: (m: string) => void }): Promise<void> {
 	const { log } = opts;
 	let backend: ReturnType<typeof wispBackend> | undefined;
 	try {
@@ -179,10 +180,15 @@ export async function prefetchApkIndexes(vm: KernelHandle, opts: { servers: stri
 		// Opened only if something is not in the browser cache. Its own connection, also in worker
 		// mode, where the guest's is in the worker. No log: its "guest network offline" would be wrong here.
 		const connect = (host: string) => () => backendConnect(backend ??= wispBackend(opts.servers ?? [...PAGE_WISP_SERVERS]), host);
+		const getFrom = (http: URL) => {
+			const base = opts.routes?.[http.hostname];
+			return (init: { headers: Headers; signal: AbortSignal }) => base && !http.port
+				? fetch(base + http.pathname, init) : fetchOver(connect(http.hostname)(), http, init);
+		};
 		const signal = AbortSignal.timeout(FETCH_TIMEOUT_MS);
 		const got = await Promise.all(wanted.map(async ({ http, name }) => {
 			try {
-				return { name, ...(await getIndex(cache, http, connect(http.hostname), signal)) };
+				return { name, ...(await getIndex(cache, http, getFrom(http), signal)) };
 			} catch (e) {
 				log(`[apk] index prefetch: ${http}: ${(e as Error).message}`);
 				return null;
