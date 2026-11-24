@@ -17,9 +17,15 @@ node "$root/guest/tools/vm-run.ts" "$kernel" "$image" --mem 1024 --net --shm --a
 	u 'cd && touch w && rm w'
 	case $name in
 	alpine) apk --version ;;
-	fedora) rpm -q bash ;;
-	arch) pacman -Q bash ;;
+	fedora*) rpm -q bash ;;
+	arch*) pacman -Q bash ;;
 	*) dpkg-query -W bash ;;
 	esac
 	[ $name != ueko ] || { ueko info; dpkg-query -W ueko-base ueko-tools; }
+	# A machine with its own init (guest/common/native): all of it came up.
+	[ ! -s /usr/lib/kw-desktop ] || {
+		for i in \$(seq 120); do s=\$(systemctl is-system-running); case \$s in running | degraded) break ;; esac; sleep 1; done
+		systemctl --failed --no-legend --plain
+		[ \"\$s\" = running ] || { echo \"systemd is \$s\"; systemctl list-jobs --no-pager; exit 1; }
+	}
 	echo smoke-ok" | tee /dev/stderr | grep -qx smoke-ok
