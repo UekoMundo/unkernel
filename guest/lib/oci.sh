@@ -66,7 +66,7 @@ oci_native() {
 	# kernel modules, swap, disks or firmware to look after.
 	for f in gdm gdm3 sddm lightdm plasmalogin display-manager systemd-modules-load systemd-vconsole-setup systemd-hwdb-update \
 		systemd-rfkill systemd-oomd systemd-networkd-wait-online NetworkManager-wait-online systemd-firstboot \
-		e2scrub_reap fwupd fwupd-refresh ModemManager plymouth-start plymouth-quit-wait smartmontools \
+		multipathd e2scrub_reap fwupd fwupd-refresh ModemManager plymouth-start plymouth-quit-wait smartmontools \
 		dnf-makecache apt-daily apt-daily-upgrade; do
 		ln -sfn /dev/null "$units/$f.service"
 	done
@@ -84,6 +84,7 @@ oci_native() {
 		update-notifier orca-autostart org.freedesktop.problems.applet print-applet; do
 		[ ! -e "$stage/etc/xdg/autostart/$f.desktop" ] || printf '[Desktop Entry]\nType=Application\nName=%s\nExec=true\nHidden=true\n' "$f" > "$stage/etc/xdg/autostart/$f.desktop"
 	done
+	ln -sfn /dev/null "$units/multipathd.socket"
 	# Made at the first boot of each workspace, kept on its disk.
 	: > "$stage/etc/machine-id"
 	[ ! -d "$stage/var/lib/dbus" ] || ln -sfn /etc/machine-id "$stage/var/lib/dbus/machine-id"

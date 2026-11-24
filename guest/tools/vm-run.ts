@@ -115,6 +115,10 @@ try {
 } catch (e) {
 	console.error(`vm-run: ${(e as Error).message}`);
 	console.error(`vm-run: the console's end:\n${consoleText}`);
+	// A machine with systemd says why itself, when it got as far as kwtty.
+	const why = "command -v journalctl >/dev/null && { systemctl --failed --no-pager; systemctl list-jobs --no-pager; journalctl -b --no-pager -p notice -n 60; }; true";
+	const d = await vm.exec("sh", ["-c", why], { timeout: 30000, user: "root" }).catch(() => null);
+	if (d?.stdout) console.error(`vm-run: the guest's journal:\n${d.stdout}`);
 	code = 1;
 }
 vm.write("\npoweroff\n");
