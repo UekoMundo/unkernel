@@ -79,5 +79,15 @@ You are "user"; sudo needs no password. Changes are kept on this
 workspace's disk, in your browser. Source: https://github.com/UekoMundo/unkernel
 EOF
 	! declare -F oci_extra >/dev/null || oci_extra "$name" "$stage"
+	# The warm set (image.sh), which the page fetches in the background after
+	# the boot: what the first commands read, over the network otherwise a
+	# file at a time.
+	KW_WARM_SCRIPT="${KW_WARM_SCRIPT:-} sudo -u user sudo -n true; df >/dev/null; less --version >/dev/null
+		! command -v apt-cache >/dev/null || { apt-cache policy bash; apt-get -s install git; dpkg -l; } >/dev/null 2>&1
+		! command -v dnf >/dev/null || dnf --version >/dev/null 2>&1
+		! command -v pacman >/dev/null || pacman -Q >/dev/null 2>&1
+		! command -v python3 >/dev/null || python3 -c pass
+		true"
+	KW_WARM_EXCLUDE="var/lib/apt/lists/*"
 	KW_DISTRO_FORMATS="${KW_OCI_FORMATS:-erofs}" distro_images "$name" "$stage" "${!tarball}" "$name-$version" "${user_owner[@]}"
 }
