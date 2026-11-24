@@ -425,8 +425,8 @@ export function start(): void {
 	KW.ready = () => guestReady;
 	// ?showcase: the scripted tour of the demos (launcher.ts).
 	void guestReady.then(showcaseFromUrl, () => {});
-	// Fresh apk indexes, fetched by the page over Wisp and pushed in once user space runs (apk.ts).
-	if (cfg.net && alpine) void guestReady.then((vm) => prefetchApkIndexes(vm, { servers: cfg.wisp, log: (m) => ui.log(m, "h") }), () => {});
+	// Fresh apk indexes, fetched by the page and pushed in once user space runs (apk.ts).
+	if (cfg.net && alpine) void guestReady.then((vm) => prefetchApkIndexes(vm, { servers: cfg.wisp, routes: cfg.routes, log: (m) => ui.log(m, "h") }), () => {});
 	// What the base booted (/run/kw-base: the image id, the upper layer), for the
 	// Environment rows, About and diagnostics.
 	void guestReady.then(showBase, () => {});

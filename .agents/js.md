@@ -1588,13 +1588,13 @@ parts that are easy to get wrong.
   pipelined requests answered in order) that answers with `fetch()`: a
   string route rewrites the prefix (`http://HOST/p` to `BASE/p`) and
   forwards only Range, If-Range, If-Modified-Since and If-None-Match, a
-  function route gets a `Request`. Other ports on those addresses are refused; everything else
-  goes to `inner`. In a browser the target's CORS must allow those
+  function route gets a `Request`. Other ports on those addresses go to `inner` by name
+  (without one, refused); everything else goes to `inner`. In a browser the target's CORS must allow those
   four headers, and one that
   compresses must expose Content-Encoding (the answer is then chunked;
   unseen, the decoded body goes out with the encoded length). The wisp spec
   takes the string form as `routes` (`buildNet()`). The page routes
-  `deb.debian.org` to a CORS mirror (`web/src/config.ts` DEFAULT_ROUTES,
+  the distros' package hosts to CORS mirrors (`web/src/config.ts` DEFAULT_ROUTES,
   `?routes=0` turns it off).
 - Not implemented: IPv6, IP fragments, UDP beyond DHCP and DNS, ICMP beyond
   10.0.2.2/3, SACK, timestamps and inbound connections. A raw-Ethernet

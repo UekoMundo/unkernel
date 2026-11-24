@@ -11,7 +11,8 @@
 // A routed name resolves to a reserved address of 198.51.100.0/24
 // (TEST-NET-2: outside Wisp's 198.18.0.0/15 and the guest's 10.0.2.0/24,
 // and passed through by NetStack.backendHost()). A connection to it on port
-// 80 is served here; on another port it is refused.
+// 80 is served here; on another port it goes to the inner backend by name
+// (https to the same host), or is refused without one.
 //
 // A string route rewrites the URL's prefix (http://HOST/path?q becomes
 // BASE/path?q) and forwards only the headers in FORWARD_HEADERS; a
@@ -270,7 +271,8 @@ export function fetchRoutes(inner: NetBackend | undefined, routes: Record<string
 		},
 		connect(addr, ev) {
 			const r = byIp.get(addr.host) ?? byName.get(normName(addr.host));
-			if (r) return addr.port === 80 ? serve(r.name, r.route, ev) : refused(ev, `connection refused (${r.name} serves port 80 only)`);
+			if (r && addr.port === 80) return serve(r.name, r.route, ev);
+			if (r) return inner ? inner.connect({ ...addr, host: r.name }, ev) : refused(ev, `connection refused (${r.name} serves port 80 only)`);
 			return inner ? inner.connect(addr, ev) : refused(ev, "connection refused");
 		},
 		close() {
