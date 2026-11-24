@@ -632,7 +632,9 @@ deploying the page needs no kernel toolchain.
   Dock, the top bar and the tabs show each control's key (KeyHint.tsx).
 - Console auto-hide (`autohide.ts`, described at its top): once per load,
   3 s after the console went quiet following user space's first output,
-  the console's window minimizes itself into its Dock tile, so the desktop
+  the console's window closes itself (`termtabs.ts` `closeConsole()`: its
+  terminal runs on, its element parked at its size; a user closes it the
+  same way, and selecting terminal 0 opens it again), so the desktop
   is what the page rests on. Only when that window is as it opened
   (focused, not maximized, snapped or minimized, the console its only tab,
   no other window shown), outside compact mode, with the system running
@@ -1071,12 +1073,7 @@ answered at the kernel's next yield.
   gtk4-widget-factory (GTK 4). Other Wayland apps are in the Browsers,
   Desktop and Games groups: SDL games (what they share: `apps/sdlwl.ts`), X11 apps in
   one rootful Xwayland window with twm (`apps/xwl.ts`). Started from the
-  launcher, a Wayland app's terminal is its log (`launcher.ts`): its tab
-  opens selected, as any app's, and shows until the app's window maps and
-  takes the focus (with `terminal: "window"` its own Terminal window is
-  minimized at once instead); it closes when run.sh ends with status 0
-  and stays after a failure. While a launcher app's window is open the
-  app's tile stands for that window, not for the terminal.
+  launcher, a Wayland app has no terminal (`background.ts`).
 - `KW.wayland`: `windows()` (key, title, appId, decorated, focused,
   maximized, fullscreen, minimized), `container()` (the workspace,
   `#workspace`, which holds the window elements and `#wl-desktop`),
@@ -1873,17 +1870,20 @@ earlier launch are never removed. The distros' nginx default site also
 listens on `[::]:80`, which fails in the guest (no IPv6), so the nginx
 app replaces it.
 
-Then the app's terminal, named after it: a tab of the Terminal window
-that last had the focus, or with `terminal: "window"` (a REPL, an agent,
-a full-screen program) a Terminal window of its own, shown with the
+Then an app that is more than its terminal (`needs.wayland`,
+`needs.display` or `ports`) runs with none (`background.ts`, described at
+its top): run.sh in a session of its own on a hidden pty, its output in
+run.log, its exit status in run.status. A toast stands for it until its
+window is there, a failure's offers the log, launching it again shows it
+(or offers to stop it), and closing the Display window quits the app that
+has the display. Any other app's terminal is the app: a Terminal window
+of its own named after it, shown with the
 app's icon and title while that is its only tab. It runs `sh -lc` with a
 wrapper in place of the login shell: `cd <dir> && ./run.sh`, then `exec`
 the login shell, so the terminal stays to edit and rerun (an INT trap
 keeps the wrapper alive through Ctrl-C). Typing the command into a fresh
 shell lost the start of the line, because the login discards input typed
-ahead of its prompt. A Wayland app's terminal (`needs.wayland`) is its
-log: it closes when run.sh ends with status 0 and stays after a failure.
-The preview opens once the guest answers http on the first of its
+ahead of its prompt. The preview opens once the guest answers http on the first of its
 `ports`.
 
 A terminal app's `downloads` (url, SHA-256, size, guest path, an optional

@@ -73,7 +73,7 @@
 import { createElement } from "react";
 import { appWindow } from "./appwindows.ts";
 import { inBackground, startBackground, stopBackground } from "./background.ts";
-import { setDisplayShown } from "./display.ts";
+import { setDisplayQuit, setDisplayShown } from "./display.ts";
 import { isPageApp, type AppDef, type AppDownload, type AppFiles, type Distro, type TerminalApp } from "./apps/types.ts";
 import { Installer } from "./components/Installer.tsx";
 import { getFile, pushFile } from "./download.ts";
@@ -572,6 +572,7 @@ async function startApp(vm: KernelHandle, d: TerminalApp, dir: string): Promise<
 		if (!shown) ui.toast(`${d.title} is running`, { action: "Stop", run: () => void stopBackground(vm, d, dir), ms: 8000 });
 		return;
 	}
+	if (d.needs?.display) setDisplayQuit(() => void stopBackground(vm, d, dir));
 	const t = ui.toast(`Opening ${d.title}…`, { ms: OPENING_MS });
 	const end = performance.now() + OPENING_MS;
 	const there = () => !!appWindow({ ...d, group: "" }) || (!!d.needs?.display && ui$().get().display.attached);

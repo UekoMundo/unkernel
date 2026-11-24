@@ -9,8 +9,9 @@
 // - the window: a desktop window (wm.ts; id DISPLAY_WIN, "Display", Dock
 //   item #dock-display) opens, focused, when a program attaches the display
 //   (onDisplay(mode)) and goes away when it lets go. Its content is one
-//   element (#fb-layer, displayHost()) that Display.tsx renders into. Closing
-//   or minimizing it only hides the picture: the program keeps running and
+//   element (#fb-layer, displayHost()) that Display.tsx renders into. Minimizing
+//   it (or closing it, for a program started by hand: a launcher app quits)
+//   only hides the picture: the program keeps running and
 //   the Dock item brings it back (setDisplayShown(), toggleDisplay(), the
 //   prefix's d: focus or minimize; hideDisplay() when the Browser or a
 //   system app opens over it). Whether it is shown is the WM's (wm.ts
@@ -349,8 +350,13 @@ function openWindow(): void {
 	wm.open({
 		id: DISPLAY_WIN, meta: DISPLAY, dockId: "dock-display",
 		content: displayHost(), ...g, minW: 200, minH: 150,
-		// Closing only hides the picture: the program keeps the display.
-		onClose: () => { wm.minimize(DISPLAY_WIN); return false; },
+		// Closing quits the launcher's app that has the display (the window goes with it);
+		// a program started by hand keeps it, and only the picture is hidden.
+		onClose: () => {
+			if (quitApp) { quitApp(); quitApp = null; }
+			else wm.minimize(DISPLAY_WIN);
+			return false;
+		},
 		onFocus: focusContent,
 		onBlur: letGo,
 		onVisible: (shown) => {
@@ -360,8 +366,13 @@ function openWindow(): void {
 	});
 }
 
+/** Quits the launcher's app that has the display (launcher.ts), if one has. */
+let quitApp: (() => void) | null = null;
+export const setDisplayQuit = (quit: (() => void) | null): void => { quitApp = quit; };
+
 /** The program let go of the display: keep the geometry for the next one, and close the window. */
 function closeWindow(): void {
+	quitApp = null;
 	const w = wm.get(DISPLAY_WIN);
 	if (!w) return;
 	if (w.placed) lastGeom = { x: w.x, y: w.y, w: w.w, h: w.h, maximized: w.maximized };
@@ -399,6 +410,8 @@ export function createDisplayUi(opts: DisplayUiOptions): DisplayUi {
 		if (!ev) return;
 		const code = domCodeToLinux(e.code);
 		const down = e.type === "keydown";
+		// macOS sends no keyup for a key released while Command is down: they all go up with it.
+		if (!down && /^Meta/.test(e.code)) ev.releaseAll();
 		// A release goes to the guest if the guest saw the press, whatever the state or target now.
 		if (!down && code !== undefined && ev.key(code, false)) {
 			e.preventDefault();
