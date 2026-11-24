@@ -10,7 +10,7 @@ RUN apt-get update -q && apt-get install -y -q --no-install-recommends \
     curl wget ca-certificates unzip procps less nano xz-utils zstd iproute2 htop tmux sudo git file bash-completion locales python3 \
     kali-desktop-xfce at-spi2-core adwaita-icon-theme kali-themes kali-menu kali-wallpapers-2025 labwc dbus-x11 xdg-desktop-portal-gtk firefox-esr \
     nmap netcat-openbsd dnsutils tcpdump hydra john sqlmap nikto whatweb gobuster \
-    libgl1-mesa-dri libegl-mesa0 libgles2 xwayland fonts-noto-color-emoji fonts-noto-core pipewire-alsa \
+    pipewire pipewire-pulse wireplumber libgl1-mesa-dri libegl-mesa0 libgles2 xwayland fonts-noto-color-emoji fonts-noto-core pipewire-alsa \
  && { groupadd -rf render; groupadd -rf input; } \
  && sed -i 's/^# en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen && printf 'LANG=en_US.UTF-8\n' > /etc/default/locale \
  && sed -i '/^Name: debconf\/frontend$/,/^$/ s/^Value: .*/Value: Noninteractive/' /var/cache/debconf/config.dat \

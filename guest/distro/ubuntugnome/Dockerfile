@@ -15,7 +15,7 @@ RUN apt-get update -q && apt-get install -y -q --no-install-recommends \
     ubuntu-desktop-minimal ubuntu-session ubuntu-wallpapers yaru-theme-gnome-shell yaru-theme-gtk yaru-theme-icon yaru-theme-sound \
     ptyxis gnome-text-editor gnome-calculator gnome-characters gnome-clocks gnome-disk-utility gnome-font-viewer gnome-keyring gnome-logs gnome-tweaks \
     baobab loupe papers resources seahorse file-roller gvfs-fuse firefox xdg-desktop-portal-gnome gsettings-ubuntu-schemas libpam-gnome-keyring \
-    libgl1-mesa-dri libegl-mesa0 libgles2 xwayland fonts-ubuntu fonts-noto-color-emoji fonts-noto-core xcursor-themes strace \
+    pipewire pipewire-pulse wireplumber libgl1-mesa-dri libegl-mesa0 libgles2 xwayland fonts-ubuntu fonts-noto-color-emoji fonts-noto-core xcursor-themes strace \
  && { userdel -r ubuntu 2>/dev/null || true; } && { groupdel ubuntu 2>/dev/null || true; } \
  && { groupadd -rf render; groupadd -rf input; } \
  && sed -i 's/^# en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen && printf 'LANG=en_US.UTF-8\n' > /etc/default/locale \

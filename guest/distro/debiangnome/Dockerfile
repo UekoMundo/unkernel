@@ -7,7 +7,7 @@ RUN printf "path-exclude=/usr/share/doc/*\npath-include=/usr/share/doc/*/copyrig
 RUN apt-get update -q && apt-get install -y -q --no-install-recommends \
     systemd systemd-sysv systemd-timesyncd dbus-user-session libpam-systemd udev polkitd network-manager \
     curl wget ca-certificates unzip procps less nano vim-tiny xz-utils zstd iproute2 htop tmux sudo git file bash-completion locales python3 strace \
-    gnome-core gnome-terminal gnome-tweaks firefox-esr loupe gnome-text-editor file-roller desktop-base libgl1-mesa-dri libegl-mesa0 libgles2 xwayland pipewire-pulse pipewire-alsa wireplumber \
+    gnome-core gnome-terminal gnome-tweaks firefox-esr loupe gnome-text-editor file-roller desktop-base libgl1-mesa-dri libegl-mesa0 libgles2 xwayland pipewire pipewire-pulse pipewire-alsa wireplumber \
     fonts-dejavu-core fonts-noto-color-emoji fonts-cantarell xdg-user-dirs xdg-utils \
  && { groupadd -rf render; groupadd -rf input; } \
  && sed -i 's/^# en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen && printf 'LANG=en_US.UTF-8\n' > /etc/default/locale \

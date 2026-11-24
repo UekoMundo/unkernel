@@ -14,7 +14,7 @@ RUN apt-get update -q && apt-get install -y -q --no-install-recommends \
     curl wget ca-certificates unzip procps less nano xz-utils zstd iproute2 htop tmux sudo git file bash-completion locales python3 \
     plasma-desktop plasma-workspace plasma-nm plasma-pa plasma-systemmonitor plasma-discover kwin-wayland systemsettings kubuntu-settings-desktop \
     konsole dolphin kate ark kcalc gwenview okular kde-spectacle firefox kde-config-gtk-style breeze-gtk-theme kscreen \
-    polkit-kde-agent-1 qt6-wayland xdg-desktop-portal-kde pipewire-pulse pipewire-alsa wireplumber \
+    polkit-kde-agent-1 qt6-wayland xdg-desktop-portal-kde pipewire pipewire-pulse pipewire-alsa wireplumber \
     libgl1-mesa-dri libegl-mesa0 libgles2 xwayland fonts-noto-core fonts-noto-color-emoji fonts-hack xdg-user-dirs xdg-utils \
  && { userdel -r ubuntu 2>/dev/null || true; } && { groupdel ubuntu 2>/dev/null || true; } \
  && { groupadd -rf render; groupadd -rf input; } \

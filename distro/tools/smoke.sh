@@ -27,5 +27,10 @@ node "$root/guest/tools/vm-run.ts" "$kernel" "$image" --mem 1024 --net --shm --a
 		for i in \$(seq 120); do s=\$(systemctl is-system-running) || true; case \$s in running | degraded) break ;; esac; sleep 1; done
 		systemctl --failed --no-legend --plain
 		[ \"\$s\" = running ] || { echo \"systemd is \$s\"; systemctl list-jobs --no-pager; exit 1; }
+		# The console signs in through PAM: logind has its session, and the user's own systemd runs.
+		waitfor() { for i in \$(seq 60); do \"\$@\" >/dev/null 2>&1 && return; sleep 1; done; echo \"not there: \$*\"; exit 1; }
+		session() { loginctl list-sessions --no-legend | grep -q ' user '; }
+		waitfor session
+		[ ! -s /usr/lib/kw-desktop ] || for u in dbus.socket pipewire.socket; do waitfor systemctl --user -M user@ is-active \$u; done
 	}
 	echo smoke-ok" | tee /dev/stderr | grep -qx smoke-ok

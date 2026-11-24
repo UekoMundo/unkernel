@@ -10,7 +10,7 @@ RUN apt-get update -q && apt-get install -y -q --no-install-recommends \
     plasma-desktop plasma-workspace plasma-nm plasma-pa plasma-systemmonitor kwin-wayland systemsettings \
     konsole dolphin kate ark kcalc gwenview okular firefox-esr kde-config-gtk-style breeze-gtk-theme kscreen \
     desktop-base polkit-kde-agent-1 qt6-wayland xdg-desktop-portal-kde \
-    libgl1-mesa-dri libegl-mesa0 libgles2 xwayland pipewire-pulse pipewire-alsa wireplumber \
+    libgl1-mesa-dri libegl-mesa0 libgles2 xwayland pipewire pipewire-pulse pipewire-alsa wireplumber \
     fonts-dejavu-core fonts-noto-core fonts-noto-color-emoji fonts-hack xdg-user-dirs xdg-utils \
  && { groupadd -rf render; groupadd -rf input; } \
  && sed -i 's/^# en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen && printf 'LANG=en_US.UTF-8\n' > /etc/default/locale \
