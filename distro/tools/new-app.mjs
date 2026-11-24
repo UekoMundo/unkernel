@@ -38,4 +38,4 @@ Gtk.main()
 set -euo pipefail
 echo "Hello from ${id} on $(uname -srm)"
 `, { mode: 0o755 });
-console.log(`${dir}\nEdit it, then: node distro/tools/build-apps.mjs ${id} (builds distro/out/debs/), and push to ueko to publish.`);
+console.log(`${dir}\nEdit it, then: node distro/tools/build-apps.mjs ${id} (builds distro/out/debs/), and open a pull request to ueko: its merge publishes it.`);

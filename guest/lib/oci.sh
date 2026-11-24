@@ -46,7 +46,7 @@ oci_distro() {
 	distro_unpack "$name" "$var"
 	local tarball="$2_TARBALL"
 	for g in bash sudo; do
-		[ -x "$stage/usr/bin/$g" ] || { echo "$name: no /usr/bin/$g" >&2; exit 1; }
+		[ -x "$stage/usr/bin/$g" ] || [ -L "$stage/usr/bin/$g" ] || { echo "$name: no /usr/bin/$g" >&2; exit 1; }
 	done
 	# What a container build leaves behind.
 	rm -rf "$stage/.dockerenv" "${stage:?}/dev" "${stage:?}/proc" "${stage:?}/sys" "${stage:?}/run" "${stage:?}/tmp"

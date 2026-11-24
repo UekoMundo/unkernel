@@ -124,6 +124,7 @@ distro_images() {
 			# only the structure).
 			rm -rf "$distro_out/$name.erofs.x"
 			"$bin/fsck.erofs" --extract="$distro_out/$name.erofs.x" --no-preserve "$distro_out/$name.erofs.tmp" >/dev/null
+			chmod -R u+rwX "$distro_out/$name.erofs.x"   # as distro_unpack's: Fedora has files nobody may read
 			diff -r --no-dereference "$stage" "$distro_out/$name.erofs.x" >&2 ||
 				{ echo "distro: $name.erofs does not read back as $stage" >&2; exit 1; }
 			rm -rf "$distro_out/$name.erofs.x"
