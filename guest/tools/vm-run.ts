@@ -74,8 +74,8 @@ let consoleText = ""; // its end, for a run that fails
 const onOutput = trace ? (b: Uint8Array) => {
 	const t = dec.decode(b, { stream: true });
 	consoleText = (consoleText + t).slice(-6000);
-	tail = (tail + t).slice(-512);
-	if (/[#$⇒] $/.test(tail.replace(/\x1b\][^\x07]*\x07|\x1b\[[0-9;?]*[A-Za-z]/g, ""))) prompted();
+	tail = (tail + t).slice(-2048);
+	if (/[#$⇒] $/.test(tail.replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-9;?!]*[A-Za-z]/g, ""))) prompted();
 } : (b: Uint8Array) => { consoleText = (consoleText + dec.decode(b, { stream: true })).slice(-6000); };
 const vm = await createKernel({
 	kernel: module, memoryMiB: mem, distro, log: () => {}, onOutput, shm,

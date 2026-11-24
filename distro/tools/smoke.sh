@@ -24,7 +24,7 @@ node "$root/guest/tools/vm-run.ts" "$kernel" "$image" --mem 1024 --net --shm --a
 	[ $name != ueko ] || { ueko info; dpkg-query -W ueko-base ueko-tools; }
 	# A machine with its own init (guest/common/native): all of it came up.
 	[ ! -e /usr/lib/systemd/system/kw-tty.service ] || {
-		for i in \$(seq 120); do s=\$(systemctl is-system-running); case \$s in running | degraded) break ;; esac; sleep 1; done
+		for i in \$(seq 120); do s=\$(systemctl is-system-running) || true; case \$s in running | degraded) break ;; esac; sleep 1; done
 		systemctl --failed --no-legend --plain
 		[ \"\$s\" = running ] || { echo \"systemd is \$s\"; systemctl list-jobs --no-pager; exit 1; }
 	}
