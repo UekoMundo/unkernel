@@ -1,0 +1,22 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Vineel Sai
+# What the base's /init starts in an image that boots like an installed
+# machine (guest/lib/oci.sh, native_distro): systemd as PID 1. The base's
+# layer is on top of the image's files and carries what makes a container
+# fit the page's own desktop (dark GTK, apps as the page's windows, X on the
+# framebuffer); here the distro is the whole system, so those go: each is
+# the image's own file again, or gone, once (the root's upper layer keeps it).
+# /usr/bin/kwbox stays: the page talks to the guest through it (kw-tty).
+
+for f in etc/gtk-3.0/settings.ini etc/gtk-4.0/settings.ini etc/chromium.d/kw-wayland \
+	etc/profile.d/kw-gl.sh etc/profile.d/kw-path.sh etc/profile.d/kw-term.sh etc/profile.d/kw-wayland.sh \
+	etc/X11/kw-kms.conf etc/X11/xorg.conf.d/10-kw-fb.conf etc/X11/xorg.conf.d/20-kw-input.conf \
+	usr/local/bin/Xwayland; do
+	if [ -e "/run/kw-lower/kw/distro/$f" ]; then
+		cmp -s "/run/kw-lower/kw/distro/$f" "/$f" || cp -p "/run/kw-lower/kw/distro/$f" "/$f"
+	elif [ -e "/$f" ] && cmp -s "/run/kw-lower/kw/layer/$f" "/$f"; then
+		rm -f "/$f"
+	fi
+done
+exec /usr/lib/systemd/systemd

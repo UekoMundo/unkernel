@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Vineel Sai
+# The page's way into the machine (terminals, files, programs on pipes),
+# over vsock.
+
+[Unit]
+Description=Host sessions over vsock
+ConditionPathExists=/dev/vsock
+DefaultDependencies=no
+After=local-fs.target systemd-tmpfiles-setup.service
+Conflicts=shutdown.target
+Before=shutdown.target
+
+[Service]
+ExecStart=/usr/bin/kwbox tty serve
+Restart=always
+RestartSec=1
+KillMode=process
+
+[Install]
+WantedBy=sysinit.target

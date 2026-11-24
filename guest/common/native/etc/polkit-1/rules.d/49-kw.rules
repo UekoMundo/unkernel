@@ -1,0 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Copyright (C) 2026 Vineel Sai
+// The user has no password to ask for (sudo asks for none either).
+
+polkit.addRule(function(action, subject) {
+	if (subject.user == "user") return polkit.Result.YES;
+});

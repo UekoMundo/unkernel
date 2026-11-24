@@ -5,5 +5,7 @@
   { "name": "ubuntu", "title": "Ubuntu", "version": "26.04 LTS", "desc": "Ubuntu's userland with apt.", "family": "ubuntu", "gl": true, "color": "#e95420", "mem": 2048 },
   { "name": "fedora", "title": "Fedora", "version": "44", "desc": "Fedora's userland with dnf.", "family": "fedora", "gl": true, "color": "#3c6eb4", "mem": 2048 },
   { "name": "arch", "title": "Arch Linux ARM", "version": "rolling", "desc": "Rolling release with pacman.", "family": "arch", "gl": true, "color": "#1793d1", "mem": 2048 },
-  { "name": "kali", "title": "Kali Linux", "version": "rolling", "desc": "Security tools, with nmap and friends preinstalled.", "family": "kali", "gl": false, "color": "#367bf0", "mem": 2048 }
+  { "name": "kali", "title": "Kali Linux", "version": "rolling", "desc": "Security tools, with nmap and friends preinstalled.", "family": "kali", "gl": false, "color": "#367bf0", "mem": 2048 },
+  { "name": "debiangnome", "title": "Debian GNOME", "version": "13", "desc": "Debian with the GNOME desktop.", "family": "debian", "gl": true, "color": "#a80030", "mem": 2048 },
+  { "name": "debiankde", "title": "Debian KDE", "version": "13", "desc": "Debian with KDE Plasma.", "family": "debian", "gl": true, "color": "#a80030", "mem": 2048 }
 ]
