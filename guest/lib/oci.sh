@@ -86,6 +86,7 @@ oci_native() {
 	done
 	# Made at the first boot of each workspace, kept on its disk.
 	: > "$stage/etc/machine-id"
+	[ ! -d "$stage/var/lib/dbus" ] || ln -sfn /etc/machine-id "$stage/var/lib/dbus/machine-id"
 }
 
 oci_distro() {
