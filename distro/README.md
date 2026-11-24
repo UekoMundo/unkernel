@@ -31,7 +31,7 @@ A new image or app shows up on the site by itself; only a change of `web/`,
 ```sh
 node distro/tools/new-app.mjs hello          # or: hello gui (GTK 3, a Wayland window)
 node distro/tools/build-apps.mjs hello       # distro/out/debs/hello_0.1_all.deb
-git commit && git push                       # publishes it
+# then a pull request to ueko: CI builds it, the merge publishes it
 ```
 
 `app.json`: `id` (the package and directory name), `version`, `title`, `desc`,
