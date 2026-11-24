@@ -17,8 +17,11 @@ User=user
 PAMName=login
 WorkingDirectory=/home/user
 Environment=XDG_SEAT=seat0 XDG_SESSION_TYPE=wayland XDG_SESSION_CLASS=user
+EnvironmentFile=/usr/lib/environment.d/90-kw.conf
 EnvironmentFile=-/usr/lib/kw-desktop.env
-ExecStart=/bin/bash -l /usr/lib/kw-desktop
+# PAM gives a session on a seat an ambient capability, with which bubblewrap
+# refuses to run (glycin's image loaders, flatpak).
+ExecStart=/usr/bin/setpriv --ambient-caps=-all --inh-caps=-all /bin/bash -l /usr/lib/kw-desktop
 Restart=always
 RestartSec=2
 UtmpIdentifier=seat0
