@@ -78,7 +78,7 @@ oci_native() {
 	# this CPU its first minutes: file indexing (the kernel has no Landlock and
 	# no file handles for it either) and looking for updates.
 	mkdir -p "$stage/etc/systemd/user" "$stage/etc/xdg/autostart"
-	for f in localsearch-3 localsearch-control-3 tracker-miner-fs-3 tracker-extract-3 kde-baloo plasma-baloorunner; do
+	for f in localsearch-3 localsearch-control-3 tracker-miner-fs-3 tracker-extract-3 kde-baloo plasma-baloorunner evolution-alarm-notify; do
 		ln -sfn /dev/null "$stage/etc/systemd/user/$f.service"
 	done
 	for f in org.gnome.Software org.gnome.Evolution-alarm-notify gnome-software-service tracker-miner-fs-3 localsearch-3 baloo_file org.kde.discover.notifier \

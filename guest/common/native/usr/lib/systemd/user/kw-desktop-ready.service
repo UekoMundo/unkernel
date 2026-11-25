@@ -10,8 +10,10 @@ PartOf=graphical-session.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-# The target is reached when the shell answers, a little before it has drawn.
-ExecStartPre=/bin/sleep 20
+# The target is reached when the shell answers, before it has drawn: GNOME
+# Shell says in the journal when it is through its startup (a minute later on
+# a slow machine), another desktop gets a while.
+ExecStartPre=/bin/sh -c 'if ! pgrep -x gnome-shell >/dev/null; then exec sleep 20; fi; for i in $$(seq 100); do journalctl --user -b -q -o cat -n 2000 _COMM=gnome-shell | grep -q "^GNOME Shell started" && exit; sleep 3; done'
 ExecStart=/bin/touch %t/kw-desktop-ready
 ExecStop=/bin/rm -f %t/kw-desktop-ready
 

@@ -19,3 +19,6 @@ RUN apt-get update -q && apt-get install -y -q --no-install-recommends \
 RUN mkdir -p /usr/share/images/desktop-base && ln -sfn /usr/share/backgrounds/kali-16x9/default /usr/share/images/desktop-base/default
 RUN printf 'XDG_CURRENT_DESKTOP=XFCE\nXDG_SESSION_DESKTOP=xfce\nDESKTOP_SESSION=xfce\n' > /usr/lib/kw-desktop.env \
  && printf 'exec startxfce4 --wayland\n' > /usr/lib/kw-desktop
+# Xfce does not start graphical-session.target, which says so for the other
+# desktops (kw-desktop-ready.service): the session says itself that it is up.
+RUN printf '[Desktop Entry]\nType=Application\nName=The desktop is up\nNoDisplay=true\nOnlyShowIn=XFCE;\nExec=sh -c "sleep 10; touch /run/user/1000/kw-desktop-ready"\n' > /etc/xdg/autostart/kw-desktop-ready.desktop
