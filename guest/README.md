@@ -82,6 +82,10 @@ base id (`/kw/layer/usr/lib/kw-base`), `image` the image id from `NAME.id`.
   first exec reads (found by booting an uncompressed image of the same
   tree as the page boots it, with kwshm and `kw.wayland=1`, `tools/vm-run.ts
   --trace`, the same set in every boot so far),
+  (an image with a desktop: also what its session opens until it is up,
+  `distro/NAME/desktop-files`, which `tools/record-desktop.mjs NAME` records
+  in a browser and is committed, as is `apps-files`, its first applications,
+  for the warm set; record them again when a desktop's start changes),
   then those of the distro's warm set (what the first commands after the
   prompt read, `KW_WARM_SCRIPT` in its build.sh: Debian's apt; the list
   `distro/NAME/warm-files`), both without fragments, then the rest

@@ -57,6 +57,11 @@
 # Its data follows the boot set's, also without tails in the packed inode,
 # and the header's `background` (the end of its data, rounded up to 1 MiB)
 # lets the SDK fetch it once the boot is done. No list: no warm set.
+# An image with a desktop has two more lists, made in a browser with
+# guest/tools/record-desktop.mjs and committed: desktop-files (what the
+# session opens until it is up, in that order) continues the boot set, and
+# apps-files (its file manager, terminal, editor and settings) the warm set.
+# recorded-set.py matches them to the files of today's versions.
 # It starts with the distro header (its format: js/core/distro.ts), in the
 # 1024 bytes before the superblock that erofs leaves unused, so the SDK
 # knows how much of it to fetch ahead over HTTP: an image of at most
@@ -204,6 +209,16 @@ distro_erofs() {
 	else
 		echo "distro: WARNING: no $rec (record it: KW_DISTRO_TRACE=1 guest/build.sh distro $name):" \
 			"$name.erofs is not laid out for its boot, and over $KW_PREFETCH_WHOLE_MAX bytes it gets no prefetch hint (read lazily, a range per miss)" >&2
+	fi
+	# A desktop's start, and its first applications (recorded in a browser:
+	# no offline trace has a GPU): the one is fetched with the boot, the
+	# others are warm.
+	if [ -s "$boot" ]; then
+		for n in "desktop-files $boot" "apps-files $warm"; do
+			rec="${KW_DISTRO_DIR:-$guest/distro/$name}/${n%% *}"
+			[ ! -f "$rec" ] || python3 -I "$guest/tools/recorded-set.py" "$rec" "$tar" >> "${n#* }"
+		done
+		awk '!s[$0]++' "$boot" > "$boot.tmp" && mv "$boot.tmp" "$boot"
 	fi
 	# Files a boot reads only sometimes (the DHCP lease script compares
 	# /etc/resolv.conf; a login shell on a console with a size reads the
