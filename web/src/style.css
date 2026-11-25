@@ -438,6 +438,19 @@
 :root[data-machine] { --tb-space: 0px; --wm-strip: 0px; }
 :root[data-machine] :is(#dock, #topbar, .wm-strip, .sk-place) { display: none; }
 :root[data-machine] :is(#app, .wm-win, .wm-body) { background: #000; border: 0; border-radius: 0; box-shadow: none; }
+/* Its desktop starts (DesktopStart.tsx), over the boot messages. */
+.ds { position: absolute; inset: 0; z-index: 2147483000; display: grid; place-items: center; padding: 16px; background: var(--color-surface); color: var(--color-fg); }
+.ds-card { display: grid; justify-items: center; gap: 8px; width: 100%; max-width: 560px; min-width: 0; text-align: center; }
+.ds-ring { width: 28px; height: 28px; margin-bottom: 8px; border-radius: 50%; border: 2.5px solid var(--color-line-strong); border-top-color: var(--color-fg); animation: ds-turn 1s linear infinite; }
+@keyframes ds-turn { to { transform: rotate(1turn); } }
+@media (prefers-reduced-motion: reduce) { .ds-ring { animation-duration: 4s; } }
+.ds-title { margin: 0; font-size: 18px; font-weight: 600; }
+.ds-step, .ds-hint { margin: 0; font-size: 14px; color: var(--color-muted); }
+.ds-hint { font-size: 13px; color: var(--color-faint); }
+.ds-time { font-variant-numeric: tabular-nums; }
+.ds-why { width: 100%; max-height: 40vh; margin: 8px 0 0; padding: 12px; overflow: auto; border-radius: 8px; background: var(--color-hover); color: var(--color-fg); font: 12px/1.5 ui-monospace, monospace; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ds-acts { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 12px; }
+.ds-pill { position: absolute; top: 12px; right: 12px; z-index: 2147483000; font-variant-numeric: tabular-nums; }
 :root.kb { --tb-space: 0px; }
 :root.kb #topbar { display: none; }
 #topbar {

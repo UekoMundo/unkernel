@@ -213,7 +213,7 @@ let offerTimer: ReturnType<typeof setTimeout> | undefined;
  */
 let starting = false;
 /** The guest's session made this file (guest/common/native, kw-desktop-ready.service). */
-const READY_SH = "[ -e /run/user/1000/kw-desktop-ready ]";
+export const READY_SH = "[ -e /run/user/1000/kw-desktop-ready ]";
 /** A session that says nothing (no systemd user session) gets its size after this long. */
 const READY_MS = 90000;
 async function awaitDesktop(): Promise<void> {
