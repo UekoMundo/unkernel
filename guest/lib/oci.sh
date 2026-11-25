@@ -63,11 +63,12 @@ oci_native() {
 		ln -sfn /usr/lib/systemd/system/multi-user.target "$units/default.target"
 	fi
 	# The desktop's own unit, so no display manager. And this machine has no
-	# kernel modules, swap, disks or firmware to look after.
+	# kernel modules, swap, disks or firmware to look after. The caches that a
+	# first boot makes again (ldconfig: most of a minute) are the image's own.
 	for f in gdm gdm3 sddm lightdm plasmalogin display-manager systemd-modules-load systemd-vconsole-setup systemd-hwdb-update \
 		systemd-rfkill systemd-oomd systemd-networkd-wait-online NetworkManager-wait-online systemd-firstboot \
 		multipathd e2scrub_reap fwupd fwupd-refresh ModemManager plymouth-start plymouth-quit-wait smartmontools \
-		dnf-makecache apt-daily apt-daily-upgrade; do
+		dnf-makecache apt-daily apt-daily-upgrade ldconfig systemd-journal-catalog-update; do
 		ln -sfn /dev/null "$units/$f.service"
 	done
 	for f in apt-daily apt-daily-upgrade fwupd-refresh dnf-makecache e2scrub_all fstrim man-db unattended-upgrades; do
