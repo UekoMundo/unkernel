@@ -31,6 +31,10 @@ node "$root/guest/tools/vm-run.ts" "$kernel" "$image" --mem 1024 --net --shm --a
 		waitfor() { for i in \$(seq 60); do \"\$@\" >/dev/null 2>&1 && return; sleep 1; done; echo \"not there: \$*\"; exit 1; }
 		session() { loginctl list-sessions --no-legend | grep -q ' user '; }
 		waitfor session
-		[ ! -s /usr/lib/kw-desktop ] || for u in dbus.socket pipewire.socket; do waitfor systemctl --user -M user@ is-active \$u; done
+		[ ! -s /usr/lib/kw-desktop ] || {
+			for u in dbus.socket pipewire.socket; do waitfor systemctl --user -M user@ is-active \$u; done
+			patient() { [ \"\$(systemctl --user -M user@ show -P DefaultTimeoutStartUSec)\" = 10min ]; } # user.conf.d/90-kw.conf
+			waitfor patient
+		}
 	}
 	echo smoke-ok" | tee /dev/stderr | grep -qx smoke-ok

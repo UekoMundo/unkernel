@@ -14,13 +14,19 @@ FROM scratch
 COPY --from=fetch /root-arch/ /
 # Pacman's download sandbox needs Landlock and a user namespace, which the
 # build's container (and the guest's kernel) may not have.
+# The mirror rotates between servers that can be days apart, so a file that
+# one's index names is missing on the next: the build names its servers, and
+# pacman asks the next one for what the first does not have.
 RUN sed -i -e 's/^#DisableSandbox.*/DisableSandbox/' -e 's/^CheckSpace/#CheckSpace/' /etc/pacman.conf \
  && printf '[options]\nNoExtract = usr/share/man/* usr/share/doc/* usr/share/info/* usr/share/locale/* usr/share/gtk-doc/*\n' > /tmp/noextract \
  && sed -i 's#^\[options\]#[options]\nNoExtract = usr/share/man/* usr/share/doc/* usr/share/info/* usr/share/locale/* usr/share/gtk-doc/*#' /etc/pacman.conf && rm /tmp/noextract \
  && pacman-key --init && pacman-key --populate archlinuxarm \
  && pacman -Rdd --noconfirm linux-aarch64 linux-firmware 2>/dev/null; \
     pacman -Rdd --noconfirm $(pacman -Qq | grep -E '^(linux-aarch64|linux-firmware.*|mkinitcpio.*)$') || true; \
-    set -e; n=0; until pacman -Syyu --noconfirm --needed sudo curl wget unzip less nano htop tmux git foot ttf-dejavu zstd; do n=$((n + 1)); [ $n -lt 6 ] || exit 1; sleep 20; done; \
+    set -e; mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.own; \
+    printf 'Server = http://%s.mirror.archlinuxarm.org/$arch/$repo\n' mi.us va.us fl.us ca.us de4 > /etc/pacman.d/mirrorlist; \
+    n=0; until pacman -Syyu --noconfirm --needed sudo curl wget unzip less nano htop tmux git foot ttf-dejavu zstd; do n=$((n + 1)); [ $n -lt 6 ] || exit 1; sleep 20; done; \
+    mv /etc/pacman.d/mirrorlist.own /etc/pacman.d/mirrorlist; \
     { userdel -r alarm || true; } && { groupdel alarm 2>/dev/null || true; } && groupadd -rf input \
  && gpgconf --homedir /etc/pacman.d/gnupg --kill all; \
     rm -rf /boot/* /usr/lib/modules/* /usr/lib/firmware/* /var/cache/pacman/pkg/* /var/lib/pacman/sync/* /var/log/pacman.log \

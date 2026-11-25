@@ -13,15 +13,19 @@ FROM scratch
 COPY --from=fetch /root-arch/ /
 # Pacman's download sandbox needs Landlock and a user namespace, which the
 # build's container (and the guest's kernel) may not have.
-# The mirror rotates between servers that are not always in step: a file an
-# index names may be missing on the next, so the install is tried again.
+# The mirror rotates between servers that can be days apart, so a file that
+# one's index names is missing on the next: the build names its servers, and
+# pacman asks the next one for what the first does not have.
 RUN sed -i -e 's/^#DisableSandbox.*/DisableSandbox/' -e 's/^CheckSpace/#CheckSpace/' /etc/pacman.conf \
  && sed -i 's#^\[options\]#[options]\nNoExtract = usr/share/man/* usr/share/doc/* usr/share/info/* usr/share/locale/* usr/share/gtk-doc/* usr/share/help/*#' /etc/pacman.conf \
  && pacman-key --init && pacman-key --populate archlinuxarm \
  && { pacman -Rdd --noconfirm $(pacman -Qq | grep -E '^(linux-aarch64|linux-firmware.*|mkinitcpio.*)$') || true; } \
- && { n=0; until pacman -Syyu --noconfirm --needed sudo curl wget unzip less nano htop tmux git bash-completion zstd python \
+ && { mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.own; \
+    printf 'Server = http://%s.mirror.archlinuxarm.org/$arch/$repo\n' mi.us va.us fl.us ca.us de4 > /etc/pacman.d/mirrorlist; \
+    n=0; until pacman -Syyu --noconfirm --needed sudo curl wget unzip less nano htop tmux git bash-completion zstd python \
     networkmanager polkit mesa xorg-xwayland pipewire pipewire-pulse pipewire-alsa wireplumber noto-fonts-emoji ttf-dejavu ttf-liberation xdg-user-dirs xdg-utils firefox \
-    plasma-desktop plasma-workspace plasma-nm plasma-pa plasma-systemmonitor kscreen kinfocenter systemsettings breeze-gtk kde-gtk-config polkit-kde-agent xdg-desktop-portal-kde discover packagekit-qt6 konsole dolphin kate ark kcalc gwenview okular spectacle; do n=$((n + 1)); [ $n -lt 6 ] || exit 1; sleep 20; done; } \
+    plasma-desktop plasma-workspace plasma-nm plasma-pa plasma-systemmonitor kscreen kinfocenter systemsettings breeze-gtk kde-gtk-config polkit-kde-agent xdg-desktop-portal-kde discover packagekit-qt6 konsole dolphin kate ark kcalc gwenview okular spectacle; do n=$((n + 1)); [ $n -lt 6 ] || exit 1; sleep 20; done; \
+    mv /etc/pacman.d/mirrorlist.own /etc/pacman.d/mirrorlist; } \
  && { userdel -r alarm || true; } && { groupdel alarm 2>/dev/null || true; } && groupadd -rf input && groupadd -rf render \
  && sed -i 's/^#en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen && printf 'LANG=en_US.UTF-8\n' > /etc/locale.conf \
  && ln -sf /usr/lib/systemd/system/NetworkManager.service /etc/systemd/system/multi-user.target.wants/NetworkManager.service \
