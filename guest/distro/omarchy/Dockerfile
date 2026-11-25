@@ -31,7 +31,7 @@ RUN set -e; \
     userdel -r alarm || true; groupdel alarm 2>/dev/null || true
 RUN set -e; n=0; until pacman -Syyuu --noconfirm --needed omarchy-keyring sudo curl wget unzip less nano htop tmux git bash-completion zstd python \
       networkmanager polkit mesa xorg-xwayland pipewire pipewire-pulse pipewire-alsa wireplumber rtkit xdg-user-dirs xdg-utils noto-fonts noto-fonts-emoji \
-      omarchy omarchy-settings omarchy-nvim omarchy-hyprland-titlebars omarchy-power-profiles-daemon omarchy-themes-backgrounds \
+      omarchy omarchy-settings omarchy-nvim omarchy-hyprland-titlebars omarchy-power-profiles-daemon \
       hyprland hyprland-guiutils hyprland-preview-share-picker hyprpicker hyprsunset uwsm quickshell xdg-desktop-portal-gtk xdg-desktop-portal-hyprland xdg-terminal-exec \
       aether bat brightnessctl btop chromium disktree-bin evince expac eza fakeroot fastfetch fcitx5 fcitx5-gtk fcitx5-qt fd ffmpeg ffmpegthumbnailer fontconfig foot fzf \
       gliff gnome-disk-utility gnome-keyring gnome-themes-extra grim gum herdr hype imagemagick imv inetutils inotify-tools inxi jq lazygit libsecret libyaml lua51 luarocks \
