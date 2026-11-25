@@ -95,3 +95,13 @@ test("an app without a terminal runs once, says how it ended, and stops", async 
 		rmSync(home, { recursive: true, force: true });
 	}
 });
+
+test("a machine's desktop has drawn when its screen is more than a pointer or a bar on black", async () => {
+	const { clock, isPicture, restarts } = await import("../src/desktopstart.ts");
+	const px = (n: number, colour: (i: number) => number[]) => Uint8ClampedArray.from(Array.from({ length: n }, (_, i) => [...colour(i), 255]).flat());
+	assert.equal(isPicture(px(2304, () => [0, 0, 0])), false);
+	assert.equal(isPicture(px(2304, (i) => (i < 64 ? [26, 27, 38] : i % 500 === 0 ? [200, 200, 200 + (i % 5)] : [0, 0, 0]))), false); // a bar and a pointer
+	assert.equal(isPicture(px(2304, (i) => [i & 255, (i * 7) & 255, (i * 13) & 255])), true);
+	assert.deepEqual([restarts("3\n"), restarts("0"), restarts(""), restarts(undefined), restarts("not found")], [3, 0, 0, 0, 0]);
+	assert.deepEqual([clock(0), clock(61_900), clock(600_000)], ["0:00", "1:01", "10:00"]);
+});

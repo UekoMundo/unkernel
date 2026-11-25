@@ -33,6 +33,7 @@ import { isVisible, useWm, wm } from "../wm.ts";
 import { drawn, useWmFx } from "../wmfx.ts";
 import { WaylandOutput } from "./WaylandOutput.tsx";
 import { DesktopMenu } from "./DesktopMenu.tsx";
+import { DesktopStart } from "./DesktopStart.tsx";
 import { SnapPreview } from "./SnapPreview.tsx";
 import { TerminalTabs } from "./TerminalTabs.tsx";
 import { WallpaperCredit } from "./Wallpaper.tsx";
@@ -86,6 +87,7 @@ export function Workspace() {
 			))}
 			<WaylandOutput />
 			{!KW.config?.machine && <DesktopMenu />}
+			{KW.config?.machine === "display" && <DesktopStart />}
 		</div>
 	);
 }
