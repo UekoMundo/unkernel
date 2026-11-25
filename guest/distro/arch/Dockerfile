@@ -20,8 +20,8 @@ RUN sed -i -e 's/^#DisableSandbox.*/DisableSandbox/' -e 's/^CheckSpace/#CheckSpa
  && pacman-key --init && pacman-key --populate archlinuxarm \
  && pacman -Rdd --noconfirm linux-aarch64 linux-firmware 2>/dev/null; \
     pacman -Rdd --noconfirm $(pacman -Qq | grep -E '^(linux-aarch64|linux-firmware.*|mkinitcpio.*)$') || true; \
-    set -e; pacman -Syu --noconfirm --needed sudo curl wget unzip less nano htop tmux git foot ttf-dejavu zstd \
- && { userdel -r alarm || true; } && { groupdel alarm 2>/dev/null || true; } && groupadd -rf input \
+    set -e; n=0; until pacman -Syyu --noconfirm --needed sudo curl wget unzip less nano htop tmux git foot ttf-dejavu zstd; do n=$((n + 1)); [ $n -lt 6 ] || exit 1; sleep 20; done; \
+    { userdel -r alarm || true; } && { groupdel alarm 2>/dev/null || true; } && groupadd -rf input \
  && gpgconf --homedir /etc/pacman.d/gnupg --kill all; \
     rm -rf /boot/* /usr/lib/modules/* /usr/lib/firmware/* /var/cache/pacman/pkg/* /var/lib/pacman/sync/* /var/log/pacman.log \
       /usr/share/man/* /usr/share/doc/* /usr/share/info/* /usr/share/locale/* /etc/pacman.d/gnupg/S.* /usr/include /usr/share/gtk-doc
