@@ -9,8 +9,8 @@ set -euo pipefail
 . "$guest/lib/image.sh"
 . "$guest/lib/oci.sh"
 . "$guest/distro/omarchy/pins.sh"
-# Its lock screen asks for a password, and the user has none: an empty one, so
-# that Enter opens it (Super+Escape, Lock); nothing locks by itself.
+# Its lock screen asks for a password, and the user has none: an empty one, with
+# which PAM takes any; nothing locks by itself.
 oci_extra() {
 	sed -i 's/^user:\*:/user::/' "$2/etc/shadow"
 	grep -q '^user::' "$2/etc/shadow"

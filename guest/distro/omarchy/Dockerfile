@@ -44,7 +44,7 @@ RUN set -e; n=0; until pacman -Syyuu --noconfirm --needed omarchy-keyring sudo c
 # (guest/lib/stage.sh) starts from /etc/skel, so what was set up for one here
 # goes there. What Omarchy turns off in a virtual machine is off, and so are
 # the bar's usage of coding agents (twenty programs at each start) and the
-# lock after a while; a lock that was asked for opens with Enter.
+# lock after a while; a lock that was asked for opens with any password.
 RUN set -e; export OMARCHY_PATH=/usr/share/omarchy OMARCHY_INSTALL=/usr/share/omarchy/install OMARCHY_INSTALL_USER=user OMARCHY_FIRST_INSTALL=1 \
       PATH=/usr/share/omarchy/bin:/usr/local/bin:/usr/bin; \
     mkdir -p /var/lib/omarchy/image && printf 'format=1\nplatform=aarch64\n' > /var/lib/omarchy/image/target; \
@@ -68,6 +68,6 @@ RUN sed -i 's/^#en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen && print
 RUN printf '\n[[ $(tty) != /dev/hvc0 ]] || { unset PROMPT_COMMAND; PS1="[\\u@\\h \\W]\\\\$ "; }\n' >> /etc/skel/.bashrc && tail -2 /etc/skel/.bashrc
 RUN printf 'XDG_CURRENT_DESKTOP=Hyprland\nXDG_SESSION_DESKTOP=Hyprland\nDESKTOP_SESSION=omarchy\n' > /usr/lib/kw-desktop.env \
  && printf 'exec uwsm start -g -1 -e -D Hyprland hyprland.desktop\n' > /usr/lib/kw-desktop
-# uwsm's units give the compositor and its environment ten seconds to start,
-# which a first start on an emulated CPU does not keep.
-RUN mkdir -p /usr/lib/systemd/user/wayland-.service.d && printf '[Service]\nTimeoutStartSec=10min\n' > /usr/lib/systemd/user/wayland-.service.d/90-kw.conf
+# uwsm waits 30 seconds for the compositor, which a first start on an emulated
+# CPU does not keep, and then ends it.
+RUN mkdir -p /usr/lib/environment.d && printf 'UWSM_WAIT_VARNAMES_TIMEOUT=600\n' | tee /usr/lib/environment.d/90-uwsm.conf >> /usr/lib/kw-desktop.env
