@@ -66,11 +66,11 @@ jobs:
           *)
             images= page=false upstream=false
             if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then images=all page=true upstream=true; else
-              changed="$(git diff --name-only "$BASE" HEAD)"
+              changed="$(git diff --name-only "$BASE" HEAD | grep -vxE 'guest/tools/record-desktop\.mjs' || true)" # (makes no image)
               has() { grep -qE "$1" <<< "$changed"; }
               for n in $own; do has "^guest/distro/$n/" && images+=" $n"; done
               has '^distro/apps/(ueko-base|ueko-tools)/' && images+=" ueko"
-              has '^(guest/(lib|src|tools|common|base)/|distro/kernel.json|distro/tools/smoke.sh|guest/distro/debian/(rootfs|pins))' && images=all
+              has '^(guest/(lib|src|tools|common|base)/|distro/kernel.json|guest/distro/debian/(rootfs|pins))' && images=all
               has '^(distro/kernel.json|distro/catalog.json)' && upstream=true
               has '^(web|js|include)/|^distro/kernel.json' && page=true
             fi ;;

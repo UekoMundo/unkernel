@@ -28,6 +28,8 @@ export type TouchMode = "mouse" | "trackpad";
 export interface DisplayState {
 	/** A program has /dev/fb0 open; mode is its size. */
 	attached: boolean;
+	/** The guest turned the screen off (power saving); the window is there, black. */
+	off: boolean;
 	width: number;
 	height: number;
 	/** Which evdev devices a program has open. */

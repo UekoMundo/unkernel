@@ -230,6 +230,24 @@ async function awaitDesktop(): Promise<void> {
 	offerSize();
 }
 
+/** The guest scans out a picture. */
+let scanout = false;
+
+/**
+ * A machine's own desktop turned its screen off (power saving, a lock): the
+ * window stays, black, and takes the input that wakes it. Without the session
+ * that did it (it ended, the machine stopped), `detach`.
+ */
+async function screenOff(detach: () => void): Promise<void> {
+	ui$().set((s) => ({ display: { ...s.display, off: true } }));
+	while (!scanout) {
+		const r = await current?.vm()?.exec("/bin/sh", ["-c", READY_SH]).catch(() => null);
+		if (scanout) return;
+		if (r?.exitCode !== 0) return detach();
+		await new Promise((res) => setTimeout(res, 3000));
+	}
+}
+
 /**
  * The size to offer changed (or may have): tell the running guest once it
  * has settled. updateDisplaySize() asks size() again (worker mode: here,
@@ -451,14 +469,19 @@ export function createDisplayUi(opts: DisplayUiOptions): DisplayUi {
 			return { width: Math.max(1, Math.floor(box.w)), height: Math.max(1, Math.floor(box.h)), dpi: 96 };
 		},
 		onDisplay(mode) {
+			scanout = !!mode;
 			if (!mode) {
-				$.set((s) => ({ display: { ...s.display, attached: false } }));
-				closeWindow();
+				const detach = () => {
+					$.set((s) => ({ display: { ...s.display, attached: false, off: false } }));
+					closeWindow();
+				};
+				if (KW.config.machine === "display" && $.get().display.attached) void screenOff(detach);
+				else detach();
 				return;
 			}
 			if (KW.config.machine === "display") void awaitDesktop();
 			const was = $.get().display.attached;
-			$.set((s) => ({ display: { ...s.display, attached: true, width: mode.width, height: mode.height } }));
+			$.set((s) => ({ display: { ...s.display, attached: true, off: false, width: mode.width, height: mode.height } }));
 			if (!was || !wm.get(DISPLAY_WIN)) openWindow();
 		},
 		onInput(state) {

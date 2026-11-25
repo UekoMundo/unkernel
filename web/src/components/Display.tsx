@@ -143,7 +143,7 @@ function Content({ opts, host, d, shown, turned, covering, portrait, pads }: {
 	return (
 		<>
 			<Backdrop />
-			<Picture opts={opts} aw={box.w} ah={box.h} rot={turned} live={shown} width={d.width} height={d.height} mouse={d.mouse} tablet={d.tablet} touchMode={d.touchMode} />
+			<Picture off={d.off} opts={opts} aw={box.w} ah={box.h} rot={turned} live={shown} width={d.width} height={d.height} mouse={d.mouse} tablet={d.tablet} touchMode={d.touchMode} />
 			{opts.touch && (
 				<Pad opts={opts} rot={turned} covering={covering} portrait={portrait} rotate={d.rotate} layout={d.layout} tablet={d.tablet} touchMode={d.touchMode} controls={d.controls} pads={pads} />
 			)}
@@ -184,8 +184,8 @@ function Backdrop() {
 }
 
 // ---- picture ------------------------------------------------------------------
-function Picture({ opts, aw, ah, rot, live, width, height, mouse, tablet, touchMode }: {
-	opts: DisplayUiOptions; aw: number; ah: number; rot: boolean; live: boolean; width: number; height: number; mouse: boolean; tablet: boolean; touchMode: TouchMode;
+function Picture({ opts, aw, ah, rot, live, off, width, height, mouse, tablet, touchMode }: {
+	opts: DisplayUiOptions; aw: number; ah: number; rot: boolean; live: boolean; off: boolean; width: number; height: number; mouse: boolean; tablet: boolean; touchMode: TouchMode;
 }) {
 	const ref = useRef<HTMLCanvasElement>(null);
 	const absolute = () => !!evdev()?.tabletOpen;
@@ -338,6 +338,7 @@ function Picture({ opts, aw, ah, rot, live, width, height, mouse, tablet, touchM
 				style={{
 					width: cw, height: ch, left: Math.floor((aw - cw) / 2), top: Math.floor((ah - ch) / 2),
 					imageRendering: sharp ? "pixelated" : "auto",
+					filter: off ? "brightness(0)" : undefined,
 					// Pointer input only while a program reads a mouse (relative or the
 					// tablet); otherwise taps go through. With the tablet the guest
 					// draws the cursor, so the host's is hidden there.

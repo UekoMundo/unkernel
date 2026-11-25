@@ -166,7 +166,7 @@ export function createUi(cfg: Config) {
 		distro: cfg.distro ? { name: cfg.distro.name, image: cfg.distro.imageId ?? "", url: cfg.distro.url } : null,
 		ctrl: false, keysOn: false, pasteOpen: false, ask: null, paused: false, prefix: false,
 		fontPref, fontSize: cfg.fontSize, copyText: null,
-		display: { attached: false, width: 0, height: 0, keyboard: false, mouse: false, tablet: false,
+		display: { attached: false, off: false, width: 0, height: 0, keyboard: false, mouse: false, tablet: false,
 			rotate: store("fbRotate") === "1", layout: padLayout(store("padLayout")),
 			touchMode: store("touchMode") === "trackpad" ? "trackpad" : "mouse",
 			controls: store("padHidden") !== "1" },

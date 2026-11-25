@@ -18,7 +18,7 @@ node "$root/guest/tools/vm-run.ts" "$kernel" "$image" --mem 1024 --net --shm --a
 	case $name in
 	alpine) apk --version ;;
 	fedora*) rpm -q bash ;;
-	arch*) pacman -Q bash ;;
+	arch* | omarchy) pacman -Q bash ;;
 	*) dpkg-query -W bash ;;
 	esac
 	[ $name != ueko ] || { ueko info; dpkg-query -W ueko-base ueko-tools; }
