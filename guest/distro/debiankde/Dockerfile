@@ -7,7 +7,7 @@ RUN printf "path-exclude=/usr/share/doc/*\npath-include=/usr/share/doc/*/copyrig
 RUN apt-get update -q && apt-get install -y -q --no-install-recommends \
     systemd systemd-sysv systemd-timesyncd dbus-user-session libpam-systemd udev polkitd network-manager \
     curl wget ca-certificates unzip procps less nano vim-tiny xz-utils zstd iproute2 htop tmux sudo git file bash-completion locales python3 strace \
-    plasma-desktop plasma-workspace plasma-nm plasma-pa plasma-systemmonitor kwin-wayland systemsettings \
+    plasma-desktop plasma-workspace plasma-nm plasma-pa plasma-systemmonitor plasma-discover kwin-wayland systemsettings \
     konsole dolphin kate ark kcalc gwenview okular firefox-esr kde-config-gtk-style breeze-gtk-theme kscreen \
     desktop-base polkit-kde-agent-1 qt6-wayland xdg-desktop-portal-kde \
     libgl1-mesa-dri libegl-mesa0 libgles2 xwayland pipewire pipewire-pulse pipewire-alsa wireplumber \
