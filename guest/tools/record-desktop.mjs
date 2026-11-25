@@ -11,8 +11,9 @@
 // with a desktop. It makes a workspace of it in a headless Chromium ($CHROME,
 // default chromium; software WebGL will do), with python3 and fanotify in the
 // guest listing the files that are opened, in that order. Of those, a file is
-// kept if it is small or enough of it is in memory at the end: a library of
-// 100 MiB of which a session reads 5 is better read lazily.
+// kept if it is small or 7 % of it is in memory at the end: read lazily, each
+// 256 KiB is a request and its round trip, which by then costs more than the
+// rest of the file does in the stream (half a second, 8 MB/s).
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -107,7 +108,7 @@ try {
 		const out = await sh(`tail -n +${from} /run/kw-rec > /run/kw-list; echo ${Buffer.from(RESIDENT).toString("base64")} | base64 -d | python3 -I -`);
 		if (out) throw new Error(`python3: ${out}`);
 		return (await read("/run/kw-res")).split("\n").map((l) => /^(\d+) (\d+) (.*)$/.exec(l))
-			.filter((m) => m && +m[2] > 0 && (+m[2] <= 262144 || +m[1] >= 0.35 * +m[2])).map((m) => m[3]);
+			.filter((m) => m && +m[2] > 0 && (+m[2] <= 262144 || +m[1] >= 0.07 * +m[2])).map((m) => m[3]);
 	};
 
 	await send("Page.navigate", { url: site });

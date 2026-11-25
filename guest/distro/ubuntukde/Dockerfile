@@ -30,4 +30,5 @@ RUN printf 'XDG_CURRENT_DESKTOP=KDE\nXDG_SESSION_DESKTOP=KDE\nDESKTOP_SESSION=pl
 # an emulated CPU does not keep; the splash screen never does.
 RUN mkdir -p /usr/lib/systemd/user/plasma-.service.d && printf '[Service]\nTimeoutStartSec=10min\n' > /usr/lib/systemd/user/plasma-.service.d/90-kw.conf \
  && printf '[KSplash]\nEngine=none\nTheme=None\n' > /etc/xdg/ksplashrc \
+ && printf '[AC][Display]\nDimDisplayWhenIdle=false\nTurnOffDisplayWhenIdle=false\n[AC][SuspendAndShutdown]\nAutoSuspendAction=0\n' > /etc/xdg/powerdevilrc \
  && mkdir -p /etc/systemd/user && ln -sfn /dev/null /etc/systemd/user/plasma-ksplash.service
