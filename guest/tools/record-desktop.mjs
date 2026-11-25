@@ -122,9 +122,9 @@ try {
 	const t0 = Date.now();
 	while (!/^up/.test(await sh("echo up") ?? "")) { if (Date.now() - t0 > 300000) throw new Error("the guest does not start"); await sleep(500); }
 	await sh(`echo ${Buffer.from(RECORDER).toString("base64")} | base64 -d > /run/kw-rec.py; setsid python3 -I /run/kw-rec.py > /run/kw-rec.log 2>&1 < /dev/null &`);
-	while (!/up/.test(await sh("test -e /run/user/1000/kw-desktop-ready && echo up") ?? "")) { if (Date.now() - t0 > 900000) throw new Error("the desktop does not start"); await sleep(5000); }
+	while (!/up/.test(await sh("if test -e /run/user/1000/kw-desktop-ready || pgrep -x xfdesktop >/dev/null; then echo up; fi") ?? "")) { if (Date.now() - t0 > 900000) throw new Error("the desktop does not start"); await sleep(5000); }
 	console.error(`${name}: the desktop is up after ${Math.round((Date.now() - t0) / 1000)} s`);
-	await sleep(20000);
+	await sleep(name.endsWith("xfce") ? 45000 : 20000);
 	const n = Number(await sh("wc -l < /run/kw-rec"));
 	const desktop = await files(1);
 	await sh(`for a in ${apps}; do command -v $a >/dev/null && systemd-run --user -M user@ -q --collect $a; done; true`);
