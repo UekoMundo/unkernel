@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Vineel Sai
+# Tells the page that the desktop is up (web/src/display.ts awaitDesktop()).
+
+[Unit]
+Description=The desktop is up
+After=graphical-session.target gnome-session-initialized.target plasma-workspace.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# The target is reached when the shell answers, a little before it has drawn.
+ExecStartPre=/bin/sleep 20
+ExecStart=/bin/touch %t/kw-desktop-ready
+ExecStop=/bin/rm -f %t/kw-desktop-ready
+
+[Install]
+WantedBy=graphical-session.target

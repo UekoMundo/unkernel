@@ -8,7 +8,7 @@
 #   - the page becomes a GitHub release page-<commit>, which apps/linux in
 #     UekoMundo/kenkon pins
 # A push builds what it touched; a run by hand builds the images it names.
-# The weekly run builds all of them again for their distributions' updates.
+# The monthly run builds all of them again for their distributions' updates.
 name: Ueko
 
 on:
@@ -18,11 +18,11 @@ on:
   pull_request:
     branches: [ueko]
   schedule:
-    - cron: "17 3 * * 1"
+    - cron: "17 3 1 * *"
   workflow_dispatch:
     inputs:
       images:
-        description: "Images to build: all, none, or names (ueko ubuntu fedora arch kali)"
+        description: "Images to build: all, none, or names (guest/distro/*/Dockerfile)"
         default: all
       page:
         description: Build and release the session page

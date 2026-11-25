@@ -21,8 +21,8 @@
 // with the console, terminal 0, as its tab, so the window (and #term in it)
 // is there from the first render: boot.ts finds #term with getElementById,
 // App.tsx's bottom tracking starts on it at mount. #term is made once and
-// never touched again (wterm owns it); its tab cannot be closed, and its
-// window only minimizes. wterms.ts hooks in its focus and visibility
+// never touched again (wterm owns it); closed, it is kept
+// out of sight (termtabs.ts closeConsole()). wterms.ts hooks in its focus and visibility
 // handling once the terminal exists.
 import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { terminalAppMeta } from "../appwindows.ts";
@@ -61,10 +61,10 @@ const onCompactChange = (cb: () => void) => {
 	q.addEventListener("change", cb);
 	return () => q.removeEventListener("change", cb);
 };
-/** Phones, and viewports below COMPACT_PX (re-renders when that changes). */
+/** Phones, viewports below COMPACT_PX and a machine's screen (re-renders when that changes). */
 export function useCompact(): boolean {
 	const narrow = useSyncExternalStore(onCompactChange, () => compactQuery().matches);
-	return !!KW.config?.mobile || narrow;
+	return !!KW.config?.mobile || !!KW.config?.machine || narrow;
 }
 
 export function Workspace() {
@@ -79,13 +79,13 @@ export function Workspace() {
 	}, []);
 	return (
 		<div id="workspace" ref={ref} className="absolute isolate top-[calc(var(--st)+var(--tb-space,0px))] right-(--sr) bottom-0 left-(--sl)">
-			<WallpaperCredit />
+			{!KW.config?.machine && <WallpaperCredit />}
 			<SnapPreview />
 			{drawn(s, fx).map(({ win: w, z, ghost }) => (
 				<Window key={w.id} win={w} z={z} focused={!ghost && s.focused === w.id} visible={ghost || isVisible(w, s)} closing={ghost} compact={s.compact} area={s.area} />
 			))}
 			<WaylandOutput />
-			<DesktopMenu />
+			{!KW.config?.machine && <DesktopMenu />}
 		</div>
 	);
 }

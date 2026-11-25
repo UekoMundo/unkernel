@@ -17,6 +17,8 @@ export interface CatalogImage {
 	family?: string;
 	/** Its Mesa has the virgl driver (guest GL). */
 	gl?: boolean;
+	/** What the page shows of it (config.ts Machine); none: the page's own desktop. */
+	ui?: "display" | "console";
 }
 
 /** An app of the catalog: a package of one distro's repository, in the launcher. */
@@ -58,6 +60,7 @@ export function parseCatalog(json: unknown, base: string, abi: number): Catalog 
 			...(typeof i.title === "string" ? { title: i.title } : {}),
 			...(typeof i.family === "string" ? { family: i.family } : {}),
 			gl: i.gl === true,
+			...(i.ui === "display" || i.ui === "console" ? { ui: i.ui } : {}),
 		})),
 		apps: apps.filter((a) => typeof a?.id === "string" && NAME.test(a.id) && typeof a.title === "string" &&
 			typeof a.command === "string" && strings(a.packages) && strings(a.distros)).map((a) => ({

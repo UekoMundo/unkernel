@@ -363,6 +363,5 @@ export default {
 		"hello.c": HELLO,
 	},
 	packages: { alpine: ["neovim"], debian: ["neovim"] },
-	terminal: "window",
 	commands: ['XDG_CONFIG_HOME="$PWD/config" nvim'],
 } satisfies TerminalApp;

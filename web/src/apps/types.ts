@@ -100,16 +100,9 @@ interface AppBase {
 	needs?: { display?: boolean; net?: boolean; sound?: boolean; wayland?: boolean };
 }
 
-/** An app run in a new terminal tab named after it (launcher.ts). */
+/** An app of the guest: run out of sight when it has a window, the display or a port, else in a Terminal window of its own (launcher.ts, background.ts). */
 export interface TerminalApp extends AppBase {
 	kind?: "terminal";
-	/**
-	 * Where its terminal opens: "tab" (the default), a tab of the Terminal
-	 * window that last had the focus; "window", a Terminal window of its own,
-	 * for an app whose terminal is the app itself (a REPL, an agent, a
-	 * full-screen program).
-	 */
-	terminal?: "tab" | "window";
 	/** The working directory in the guest. Default ~/.apps/<id>. */
 	dir?: string;
 	/**

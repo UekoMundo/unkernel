@@ -11,7 +11,7 @@
 // under its content's name, and catalog.json: distro/catalog.json's entries
 // (what people see) that have an image, and the launcher's apps. An entry
 // whose published image is of another ABI is left out until it is rebuilt.
-import { copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, linkSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { ROOT, loadApps, published, sha256 } from "./lib.mjs";
 
@@ -43,7 +43,8 @@ for (const f of existsSync(dir) ? readdirSync(dir).filter((n) => n.endsWith(".er
 	if (!meta.some((m) => m.name === name)) throw new Error(`${f}: distro/catalog.json has no entry ${name}`);
 	const bytes = readFileSync(file), sum = sha256(bytes);
 	const url = `${name}-${sum.slice(0, 16)}.erofs`;
-	copyFileSync(file, path.join(out, url));
+	rmSync(path.join(out, url), { force: true });
+	try { linkSync(file, path.join(out, url)); } catch { copyFileSync(file, path.join(out, url)); } // a link: the images are gigabytes together
 	fresh.set(name, { url, size: bytes.length, sha256: sum, image: h.image, abi });
 }
 const images = [];

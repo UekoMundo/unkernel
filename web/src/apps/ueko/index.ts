@@ -19,7 +19,6 @@ export default defineGroup({
 	colors: a.colors ?? ["#16a34a", "#052e16"],
 	needs: { net: true, wayland: a.wayland },
 	packages: Object.fromEntries(a.distros.map((d) => [d as Distro, a.packages])),
-	terminal: a.wayland ? "tab" : "window",
 	waylandIds: a.waylandIds,
 	commands: [a.command],
 })));

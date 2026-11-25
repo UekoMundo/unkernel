@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Vineel Sai
+# The desktop on the machine's display, signed in as "user". A display
+# manager needs virtual terminals, which this kernel has none of: logind
+# gives seat0 to this one session instead. /usr/lib/kw-desktop is the
+# image's session (guest/distro/NAME/Dockerfile).
+
+[Unit]
+Description=Desktop session
+ConditionPathExists=/dev/dri/card0
+After=systemd-user-sessions.service dbus.service systemd-logind.service network.target
+Wants=dbus.service systemd-logind.service
+Conflicts=shutdown.target
+
+[Service]
+User=user
+PAMName=login
+WorkingDirectory=/home/user
+Environment=XDG_SEAT=seat0 XDG_SESSION_TYPE=wayland XDG_SESSION_CLASS=user
+EnvironmentFile=/usr/lib/environment.d/90-kw.conf
+EnvironmentFile=-/usr/lib/kw-desktop.env
+# PAM gives a session on a seat an ambient capability, with which bubblewrap
+# refuses to run (glycin's image loaders, flatpak).
+ExecStart=/usr/bin/setpriv --ambient-caps=-all --inh-caps=-all /bin/bash -l /usr/lib/kw-desktop
+Restart=always
+RestartSec=2
+UtmpIdentifier=seat0
+UtmpMode=user
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=graphical.target

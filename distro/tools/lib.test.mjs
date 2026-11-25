@@ -3,13 +3,25 @@
 // The distro tools: node --test distro/tools/*.test.mjs
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { ROOT, appProblems, loadApps, sha256, sourceHash, stanzas } from "./lib.mjs";
 
 const tool = (name, args, env = {}) => execFileSync("node", [path.join(ROOT, "distro/tools", name), ...args], { encoding: "utf8", env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"] });
+
+test("the catalog's images are there, and a display is an image with a session", () => {
+	const rows = JSON.parse(readFileSync(path.join(ROOT, "distro/catalog.json"), "utf8"));
+	assert.equal(new Set(rows.map((r) => r.name)).size, rows.length);
+	for (const r of rows) {
+		const f = path.join(ROOT, "guest/distro", r.name, "Dockerfile");
+		assert.equal(existsSync(path.join(ROOT, "guest/distro", r.name, "build.sh")), true, r.name);
+		const session = existsSync(f) && readFileSync(f, "utf8").includes("> /usr/lib/kw-desktop\n");
+		assert.equal(r.ui === "display", session, r.name);
+		if (r.ui === "display") assert.equal(r.gl, true, r.name);
+	}
+});
 
 test("every app is valid and hashes the same twice", () => {
 	for (const a of loadApps()) assert.equal(sourceHash(a), sourceHash(a));

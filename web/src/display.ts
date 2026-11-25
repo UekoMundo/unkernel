@@ -9,8 +9,9 @@
 // - the window: a desktop window (wm.ts; id DISPLAY_WIN, "Display", Dock
 //   item #dock-display) opens, focused, when a program attaches the display
 //   (onDisplay(mode)) and goes away when it lets go. Its content is one
-//   element (#fb-layer, displayHost()) that Display.tsx renders into. Closing
-//   or minimizing it only hides the picture: the program keeps running and
+//   element (#fb-layer, displayHost()) that Display.tsx renders into. Minimizing
+//   it (or closing it, for a program started by hand: a launcher app quits)
+//   only hides the picture: the program keeps running and
 //   the Dock item brings it back (setDisplayShown(), toggleDisplay(), the
 //   prefix's d: focus or minimize; hideDisplay() when the Browser or a
 //   system app opens over it). Whether it is shown is the WM's (wm.ts
@@ -68,6 +69,7 @@ import { DisplayIcon } from "./components/icons.tsx";
 import { KernelInstance, domCodeToLinux, type WorkerKernel, type DisplayMode, type InputState } from "./sdk.ts";
 import { inTerminal, ownsKeys } from "./focus.ts";
 import { useSyncExternalStore } from "react";
+import { KW } from "./kw.ts";
 import { ui$, type PadLayout, type TouchMode } from "./store.ts";
 import { store } from "./prefs.ts";
 import { wm, wm$, type Geom, type WmState } from "./wm.ts";
@@ -160,7 +162,7 @@ export const displayFocused = (): boolean => wm.focused() === DISPLAY_WIN;
 
 /** A CSS length variable on the root, in px (style.css: --wm-title, --wm-strip). */
 const cssPx = (name: string, fallback: number): number =>
-	parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)) || fallback;
+	((v) => (Number.isNaN(v) ? fallback : v))(parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)));
 /** The window's title bar, and in compact mode its strip (hidden while the on-screen keyboard is up). */
 const titleH = (): number => cssPx("--wm-title", 34);
 const stripH = (): number => (document.documentElement.classList.contains("kb") ? 0 : cssPx("--wm-strip", 30));
@@ -204,6 +206,31 @@ const OFFER_MS = 300;
 let offerTimer: ReturnType<typeof setTimeout> | undefined;
 
 /**
+ * A machine's own desktop is starting (config.ts Machine): its display keeps
+ * the size it started with until the session says it is up. GNOME Shell never
+ * gets past its startup when a monitor changes while it loads its background:
+ * the pane that keeps input from it stays.
+ */
+let starting = false;
+/** The guest's session made this file (guest/common/native, kw-desktop-ready.service). */
+const READY_SH = "[ -e /run/user/1000/kw-desktop-ready ]";
+/** A session that says nothing (no systemd user session) gets its size after this long. */
+const READY_MS = 90000;
+async function awaitDesktop(): Promise<void> {
+	if (starting) return;
+	starting = true;
+	for (const end = performance.now() + READY_MS; performance.now() < end;) {
+		await new Promise((r) => setTimeout(r, 2000));
+		const vm = current?.vm();
+		if (!vm) break;
+		const r = await vm.exec("/bin/sh", ["-c", READY_SH]).catch(() => null);
+		if (!r || r.exitCode === 0) break;
+	}
+	starting = false;
+	offerSize();
+}
+
+/**
  * The size to offer changed (or may have): tell the running guest once it
  * has settled. updateDisplaySize() asks size() again (worker mode: here,
  * for the worker; inline the kernel asks it when it needs it) and lets
@@ -211,6 +238,7 @@ let offerTimer: ReturnType<typeof setTimeout> | undefined;
  */
 function offerSize(): void {
 	clearTimeout(offerTimer);
+	if (starting) return; // awaitDesktop() offers it
 	offerTimer = setTimeout(() => {
 		const vm = current?.vm();
 		if (vm && !(vm instanceof KernelInstance && vm.kernel.result)) vm.updateDisplaySize();
@@ -322,8 +350,13 @@ function openWindow(): void {
 	wm.open({
 		id: DISPLAY_WIN, meta: DISPLAY, dockId: "dock-display",
 		content: displayHost(), ...g, minW: 200, minH: 150,
-		// Closing only hides the picture: the program keeps the display.
-		onClose: () => { wm.minimize(DISPLAY_WIN); return false; },
+		// Closing quits the launcher's app that has the display (the window goes with it);
+		// a program started by hand keeps it, and only the picture is hidden.
+		onClose: () => {
+			if (quitApp) { quitApp(); quitApp = null; }
+			else wm.minimize(DISPLAY_WIN);
+			return false;
+		},
 		onFocus: focusContent,
 		onBlur: letGo,
 		onVisible: (shown) => {
@@ -333,8 +366,13 @@ function openWindow(): void {
 	});
 }
 
+/** Quits the launcher's app that has the display (launcher.ts), if one has. */
+let quitApp: (() => void) | null = null;
+export const setDisplayQuit = (quit: (() => void) | null): void => { quitApp = quit; };
+
 /** The program let go of the display: keep the geometry for the next one, and close the window. */
 function closeWindow(): void {
+	quitApp = null;
 	const w = wm.get(DISPLAY_WIN);
 	if (!w) return;
 	if (w.placed) lastGeom = { x: w.x, y: w.y, w: w.w, h: w.h, maximized: w.maximized };
@@ -372,6 +410,8 @@ export function createDisplayUi(opts: DisplayUiOptions): DisplayUi {
 		if (!ev) return;
 		const code = domCodeToLinux(e.code);
 		const down = e.type === "keydown";
+		// macOS sends no keyup for a key released while Command is down: they all go up with it.
+		if (!down && /^Meta/.test(e.code)) ev.releaseAll();
 		// A release goes to the guest if the guest saw the press, whatever the state or target now.
 		if (!down && code !== undefined && ev.key(code, false)) {
 			e.preventDefault();
@@ -416,6 +456,7 @@ export function createDisplayUi(opts: DisplayUiOptions): DisplayUi {
 				closeWindow();
 				return;
 			}
+			if (KW.config.machine === "display") void awaitDesktop();
 			const was = $.get().display.attached;
 			$.set((s) => ({ display: { ...s.display, attached: true, width: mode.width, height: mode.height } }));
 			if (!was || !wm.get(DISPLAY_WIN)) openWindow();

@@ -70,10 +70,13 @@ if (trace) {
 let tail = "", prompted = () => {};
 const prompt = new Promise<void>((r) => (prompted = r));
 const dec = new TextDecoder();
+let consoleText = ""; // its end, for a run that fails
 const onOutput = trace ? (b: Uint8Array) => {
-	tail = (tail + dec.decode(b, { stream: true })).slice(-512);
-	if (/[#$⇒] $/.test(tail.replace(/\x1b\][^\x07]*\x07|\x1b\[[0-9;?]*[A-Za-z]/g, ""))) prompted();
-} : undefined;
+	const t = dec.decode(b, { stream: true });
+	consoleText = (consoleText + t).slice(-6000);
+	tail = (tail + t).slice(-2048);
+	if (/[#$⇒] $/.test(tail.replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-9;?!]*[A-Za-z]/g, ""))) prompted();
+} : (b: Uint8Array) => { consoleText = (consoleText + dec.decode(b, { stream: true })).slice(-6000); };
 const vm = await createKernel({
 	kernel: module, memoryMiB: mem, distro, log: () => {}, onOutput, shm,
 	...(append ? { cmdline: `${bundledBoot(module).cmdline} ${append}` } : {}),
@@ -111,6 +114,11 @@ try {
 	}
 } catch (e) {
 	console.error(`vm-run: ${(e as Error).message}`);
+	console.error(`vm-run: the console's end:\n${consoleText}`);
+	// A machine with systemd says why itself, when it got as far as kwtty.
+	const why = "command -v journalctl >/dev/null && { systemctl --failed --no-pager; systemctl list-jobs --no-pager; journalctl -b --no-pager -p notice -n 60; }; true";
+	const d = await vm.exec("sh", ["-c", why], { timeout: 30000, user: "root" }).catch(() => null);
+	if (d?.stdout) console.error(`vm-run: the guest's journal:\n${d.stdout}`);
 	code = 1;
 }
 vm.write("\npoweroff\n");

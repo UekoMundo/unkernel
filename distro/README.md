@@ -44,11 +44,36 @@ into `$DESTDIR`; `copy` takes files from elsewhere in the repository;
 changes under its version: bump `version` with every change. In a workspace:
 `ueko apps`, `ueko install hello`, `ueko update`.
 
+## Images that boot like an installed machine
+
+An image whose `build.sh` calls `native_distro` (`guest/lib/oci.sh`) is the
+distro itself, not a userland under the page's desktop: its systemd is PID 1,
+its NetworkManager has the network, and its desktop drives `/dev/dri/card0`
+(virtio-gpu: Mesa's virgl on the browser's WebGL2) and the evdev devices. The
+page is its screen (`"ui": "display"` in `distro/catalog.json`; `"console"` for
+one without a desktop; none: the page's own desktop, Ueko's), with no Dock, top
+bar or shortcuts (`web/src/config.ts` `Machine`).
+
+- `guest/common/native/`: `kw-init` (drops the base layer's files that fit the
+  page's desktop, then execs systemd), `kw-tty` (the page's way in, over
+  vsock), `kw-desktop` (the session on seat0, signed in as `user`; a display
+  manager needs virtual terminals, which the kernel has none of) and
+  `kw-desktop-ready` (tells the page that the desktop is up).
+- The Dockerfile names the session: `/usr/lib/kw-desktop` (a shell script that
+  execs it) and `/usr/lib/kw-desktop.env`. Without them it is a console image.
+- Until `kw-desktop-ready` the page offers the guest no other display size:
+  GNOME Shell hangs in its startup when a monitor changes then.
+- A desktop cannot be paused (its GPU state is the page's); it shuts down.
+- `?ui=page` shows such a machine in the page's desktop, to look into one that
+  does not start.
+
 ## Add a distro
 
 1. `guest/distro/NAME/` with a `Dockerfile` (the rules are at the top of
    `guest/lib/oci.sh`), `pins.sh` and `build.sh` (copy another's).
-2. An entry in `distro/catalog.json`.
+2. An entry in `distro/catalog.json`: images with the same `distro` are its
+   editions, the first one the default; `hidden` ones are not offered, and the
+   workspaces made from them go on.
 3. Open a pull request to `ueko`: CI builds it on arm64 and boots it
    (`distro/tools/smoke.sh`); the merge
    publishes it. A workspace keeps its changes over a new image of its distro.

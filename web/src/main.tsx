@@ -38,6 +38,8 @@ if (/Macintosh/.test(navigator.userAgent) && !navigator.maxTouchPoints) {
 }
 
 const cfg = (KW.config = readConfig());
+if (cfg.machine) document.documentElement.dataset.machine = cfg.machine;
+else delete document.documentElement.dataset.machine;
 const ui = createUi(cfg);
 KW.ui = ui;
 // Rendered at once (it replaces index.html's static desktop, which it draws

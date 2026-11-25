@@ -89,7 +89,7 @@ KW_WARM_FILES="${KW_WARM_FILES:-}"
 
 distro_out="$(realpath -m "${KW_DISTRO_OUT:-$build/distro}")"
 
-# distro_report FILE: raw size and what it takes to download compressed.
+# distro_report FILE (KW_DISTRO_REPORT=0: not, it compresses a large image for minutes): raw size and what it takes to download compressed.
 distro_report() {
 	local f=$1 gz zs
 	gz=$(gzip -9n < "$f" | wc -c)
@@ -145,7 +145,7 @@ distro_images() {
 	# it says the images are complete.
 	echo "$id" > "$distro_out/$name.id"
 	echo "distro $name ($id):"
-	for fmt in $KW_DISTRO_FORMATS; do distro_report "$distro_out/$name.$fmt"; done
+	[ "${KW_DISTRO_REPORT:-1}" = 0 ] || for fmt in $KW_DISTRO_FORMATS; do distro_report "$distro_out/$name.$fmt"; done
 }
 
 # distro_erofs NAME TAR UUID EPOCH EROFS-BIN: $distro_out/NAME.erofs.tmp
@@ -184,7 +184,7 @@ distro_erofs() {
 		"${mkfs[@]}" -Enoinline_data "$out" "$tar"
 		node "$guest/tools/vm-run.ts" "$base_bundle" "$out" "${KW_TRACE_BOOT[@]}" --timeout 300 --trace "$out.trace" "$KW_BOOT_SCRIPT" ||
 			{ echo "distro: $name.erofs (uncompressed) does not boot (vm-run.ts)" >&2; exit 1; }
-		python3 -I "$guest/tools/erofs-trace.py" "$out" "$out.trace" > "$boot"
+		python3 -I "$guest/tools/erofs-trace.py" "$out" "$out.trace" | boot_small "$tar" > "$boot"
 		{ boot_files_header "$name"; cat "$boot"; } > "$rec"
 		echo "distro: $name: recorded $rec" >&2
 		if [ -n "$KW_WARM_SCRIPT" ]; then
@@ -240,6 +240,18 @@ distro_erofs() {
 		rm -f "$out"
 	fi
 	"${mkfs[@]}" "${z[@]}" "${order[@]}" "$out" "$tar"
+}
+
+# boot_small TAR: of the paths on stdin, those of at most $KW_BOOT_MAX bytes
+# (sizes from TAR). A large file that a boot reads parts of (a locale
+# archive, a library of 100 MiB) would be fetched whole with the boot set.
+boot_small() {
+	if [ -z "${KW_BOOT_MAX:-}" ]; then cat; return; fi
+	python3 -I -c '
+import sys, tarfile
+size = {m.name.removeprefix("./"): m.size for m in tarfile.open(sys.argv[1]) if m.isreg()}
+for p in sys.stdin:
+    if size.get(p.rstrip("\n"), 0) <= int(sys.argv[2]): sys.stdout.write(p)' "$1" "$KW_BOOT_MAX"
 }
 
 # boot_files_header NAME: the head of a recorded guest/distro/NAME/boot-files.

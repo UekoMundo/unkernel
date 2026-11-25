@@ -5,7 +5,7 @@
 // terminal in the window, #term-tab-N on terminal N's tab button, titled con, tty N, the foreground program or the
 // app's name (termtabs.ts tabLabel()), faint
 // while it opens and red once it ended (why in the tooltip). The console's
-// tab has no ×; a tty's × asks first while its shell runs (terminals.ts
+// × only takes it from view; a tty's asks first while its shell runs (terminals.ts
 // closeTerminal). + (#term-tab-new in the console's window) opens a new tty in this window (while one can open: not
 // all MAX_TERMINALS taken, the kernel not stopped; dimmed until the system
 // runs, store.ts isRunning); a right click, a
@@ -30,7 +30,7 @@ export const TerminalTabs = memo(function TerminalTabs({ id }: { id: string }) {
 		const l = tabLabel(n, terms);
 		const how = l.state === "opening" ? ", starting" : l.state === "ended" ? `, ended${l.note ? `: ${l.note}` : ""}` : "";
 		return {
-			key: n, id: `term-tab-${n}`, label: l.title, closable: n !== 0, hint: terminalKey(n),
+			key: n, id: `term-tab-${n}`, label: l.title, closable: true, hint: terminalKey(n),
 			state: l.state === "opening" ? "busy" : l.state === "ended" ? "error" : undefined,
 			title: withKey(`${n === 0 ? "The console" : l.title}, terminal ${n}${how}`, terminalKey(n)),
 		};

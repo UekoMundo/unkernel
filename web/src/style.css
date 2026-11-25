@@ -434,6 +434,10 @@
    macOS's menu bar it has no background (nothing else is ever under it):
    its text and icons read by their own soft shadow. Its tokens (--tb-*) are
    on :root above. */
+/* The page is a machine's screen (config.ts Machine): its windows fill it, with no chrome. */
+:root[data-machine] { --tb-space: 0px; --wm-strip: 0px; }
+:root[data-machine] :is(#dock, #topbar, .wm-strip, .sk-place) { display: none; }
+:root[data-machine] :is(#app, .wm-win, .wm-body) { background: #000; border: 0; border-radius: 0; box-shadow: none; }
 :root.kb { --tb-space: 0px; }
 :root.kb #topbar { display: none; }
 #topbar {

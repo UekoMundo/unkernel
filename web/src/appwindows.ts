@@ -19,8 +19,8 @@
 // - windowApp(id): the launcher app a window stands for (its descriptor's
 //   id), whose pinned tile it is drawn as: a page app's own window, a
 //   terminal app's Terminal window or Wayland window, or its installer while
-//   it is installed (installer.ts); Terminal stands for the console's
-//   Terminal window only;
+//   it is installed (installer.ts); Terminal stands for the first
+//   Terminal window only (the console's, until it is closed);
 // - appWindow(app): the window a pinned app's tile stands for, the first
 //   that windowApp() gives it (a Wayland window before the others: the app's
 //   own window rather than the terminal it was started from);
@@ -30,7 +30,7 @@
 // tiles; a component that shows them subscribes to both stores itself.
 import { APPS } from "./apps/index.ts";
 import { isPageApp, type App, type AppMeta } from "./apps/types.ts";
-import { CONSOLE_WIN, termTabs$ } from "./termtabs.ts";
+import { termTabs$ } from "./termtabs.ts";
 import { wm, type WmWindow } from "./wm.ts";
 
 const BY_ID = new Map(APPS.map((a) => [a.id, a]));
@@ -82,7 +82,7 @@ export const windowDetail = (w: WmWindow): string => (w.title === w.meta.title |
 export function windowApp(id: string): App | undefined {
 	const w = wm.get(id), app = w && BY_ID.get(w.meta.id);
 	// The other Terminal windows are more of its windows: tiles of their own, no Keep in Dock.
-	if (app?.id === "terminal" && id !== CONSOLE_WIN) return undefined;
+	if (app?.id === "terminal" && id !== termTabs$.get().windows.find((t) => wm.get(t.id)?.meta.id === "terminal")?.id) return undefined;
 	return app;
 }
 
