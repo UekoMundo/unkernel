@@ -24,6 +24,7 @@ const APPS = {
 	gnome: "nautilus gnome-text-editor gnome-control-center ptyxis gnome-terminal kgx",
 	kde: "dolphin kate systemsettings konsole",
 	xfce: "thunar mousepad xfce4-settings-manager xfce4-terminal",
+	omarchy: "foot nautilus",
 };
 const apps = APPS[Object.keys(APPS).find((k) => name.endsWith(k))] ?? "";
 const PORT = 9400 + process.pid % 500;
@@ -116,7 +117,7 @@ try {
 	const set = (sel, value) => ev(`(() => { const s = document.querySelector(${JSON.stringify(sel)}); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set.call(s, ${JSON.stringify(value)}); s.dispatchEvent(new Event("change", { bubbles: true })); return s.value; })()`);
 	await set("#ws-distro", name.replace(/(gnome|kde|xfce)$/, ""));
 	await sleep(500);
-	if (await set("#ws-edition", name) !== name) throw new Error(`no image ${name} on ${site}`);
+	if (await ev(`!!document.querySelector("#ws-edition")`) && await set("#ws-edition", name) !== name) throw new Error(`no image ${name} on ${site}`);
 	await sleep(500);
 	await click(`(b) => /^create/i.test(b.innerText.trim())`);
 	const t0 = Date.now();
