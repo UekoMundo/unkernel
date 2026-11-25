@@ -21,7 +21,7 @@ RUN sed -i -e 's/^#DisableSandbox.*/DisableSandbox/' -e 's/^CheckSpace/#CheckSpa
  && { pacman -Rdd --noconfirm $(pacman -Qq | grep -E '^(linux-aarch64|linux-firmware.*|mkinitcpio.*)$') || true; } \
  && { n=0; until pacman -Syyu --noconfirm --needed sudo curl wget unzip less nano htop tmux git bash-completion zstd python \
     networkmanager polkit mesa xorg-xwayland pipewire pipewire-pulse pipewire-alsa wireplumber noto-fonts noto-fonts-emoji ttf-dejavu xdg-user-dirs xdg-utils firefox \
-    plasma-desktop plasma-workspace plasma-nm plasma-pa plasma-systemmonitor kscreen kinfocenter systemsettings breeze-gtk kde-gtk-config kdeplasma-addons polkit-kde-agent xdg-desktop-portal-kde discover packagekit-qt6 konsole dolphin kate ark kcalc gwenview okular spectacle; do n=$((n + 1)); [ $n -lt 6 ] || exit 1; sleep 20; done; } \
+    plasma-desktop plasma-workspace plasma-nm plasma-pa plasma-systemmonitor kscreen kinfocenter systemsettings breeze-gtk kde-gtk-config polkit-kde-agent xdg-desktop-portal-kde konsole dolphin kate ark kcalc gwenview okular spectacle; do n=$((n + 1)); [ $n -lt 6 ] || exit 1; sleep 20; done; } \
  && { userdel -r alarm || true; } && { groupdel alarm 2>/dev/null || true; } && groupadd -rf input && groupadd -rf render \
  && sed -i 's/^#en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen && printf 'LANG=en_US.UTF-8\n' > /etc/locale.conf \
  && ln -sf /usr/lib/systemd/system/NetworkManager.service /etc/systemd/system/multi-user.target.wants/NetworkManager.service \
