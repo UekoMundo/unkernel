@@ -36,3 +36,8 @@ RUN mkdir -p /etc/xdg && printf '[Daemon]\nAutolock=false\nLockOnResume=false\n'
  && printf '[Basic Settings]\nIndexing-Enabled=false\n' > /etc/xdg/baloofilerc
 RUN printf 'XDG_CURRENT_DESKTOP=KDE\nXDG_SESSION_DESKTOP=KDE\nDESKTOP_SESSION=plasma\n' > /usr/lib/kw-desktop.env \
  && printf 'exec startplasma-wayland\n' > /usr/lib/kw-desktop
+# Plasma's units give themselves 40 seconds to start, which a first start on
+# an emulated CPU does not keep; the splash screen never does.
+RUN mkdir -p /usr/lib/systemd/user/plasma-.service.d && printf '[Service]\nTimeoutStartSec=10min\n' > /usr/lib/systemd/user/plasma-.service.d/90-kw.conf \
+ && printf '[KSplash]\nEngine=none\nTheme=None\n' > /etc/xdg/ksplashrc \
+ && mkdir -p /etc/systemd/user && ln -sfn /dev/null /etc/systemd/user/plasma-ksplash.service
