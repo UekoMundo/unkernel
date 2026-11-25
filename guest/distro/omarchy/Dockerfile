@@ -72,3 +72,9 @@ RUN printf 'XDG_CURRENT_DESKTOP=Hyprland\nXDG_SESSION_DESKTOP=Hyprland\nDESKTOP_
 # uwsm waits 30 seconds for the compositor, which a first start on an emulated
 # CPU does not keep, and then ends it.
 RUN mkdir -p /usr/lib/environment.d && printf 'UWSM_WAIT_VARNAMES_TIMEOUT=600\n' | tee /usr/lib/environment.d/90-uwsm.conf >> /usr/lib/kw-desktop.env
+# Hyprland gives its configuration 1.5 seconds to load, whatever the CPU, and
+# leaves out what came after: loaded again once the session is there, when its
+# files are in memory.
+RUN printf '[Unit]\nDescription=Load the Hyprland configuration that took too long\nAfter=graphical-session.target\nPartOf=graphical-session.target\n\n[Service]\nType=exec\nExecStart=/usr/lib/kw-hypr-config\n\n[Install]\nWantedBy=graphical-session.target\n' > /usr/lib/systemd/user/kw-hypr-config.service \
+ && printf '#!/bin/sh\nfor i in $(seq 30); do\n\tsleep 8\n\tif hyprctl configerrors | grep -q "timed out"; then hyprctl reload; elif [ "$i" -gt 8 ]; then exit 0; fi\ndone\n' > /usr/lib/kw-hypr-config && chmod 755 /usr/lib/kw-hypr-config \
+ && mkdir -p /etc/systemd/user/graphical-session.target.wants && ln -sfn /usr/lib/systemd/user/kw-hypr-config.service /etc/systemd/user/graphical-session.target.wants/kw-hypr-config.service
