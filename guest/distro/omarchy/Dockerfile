@@ -22,7 +22,7 @@ COPY --from=fetch /omarchy.asc /tmp/omarchy.asc
 # are those of Omarchy's own pacman.conf for aarch64.
 RUN set -e; \
     sed -i -e 's/^#DisableSandbox.*/DisableSandbox/' -e 's/^CheckSpace/#CheckSpace/' /etc/pacman.conf; \
-    sed -i 's#^\[options\]#[options]\nNoExtract = usr/share/man/* usr/share/doc/* usr/share/info/* usr/share/locale/* usr/share/gtk-doc/* usr/share/help/* usr/share/omarchy/themes/*/intros/* usr/share/hypr/wall* usr/share/qt6/translations/* usr/share/gir-1.0/* usr/lib/chromium/chromedriver usr/bin/chromedriver usr/lib/chromium/locales/* !usr/lib/chromium/locales/en-US*#' /etc/pacman.conf; \
+    sed -i 's#^\[options\]#[options]\nNoExtract = usr/share/man/* usr/share/doc/* usr/share/info/* usr/share/locale/* usr/share/gtk-doc/* usr/share/help/* usr/share/omarchy/themes/*/intros/* usr/share/hypr/wall* usr/share/qt6/translations/* usr/share/gir-1.0/* usr/lib/chromium/chromedriver usr/bin/chromedriver usr/lib/chromium/locales/* !usr/lib/chromium/locales/en-US* usr/lib/*.a usr/lib/python3*/test/* usr/bin/js140 usr/bin/gtk4-rendernode-tool usr/bin/gtk4-node-editor usr/bin/gtk4-demo#' /etc/pacman.conf; \
     sed -i 's#^\[core\]#[omarchy]\nServer = https://pkgs.omarchy.org/stable/$arch\n\n[core]#' /etc/pacman.conf; \
     printf 'Server = https://arm-stable-mirror.omarchy.org/$arch/$repo\n' > /etc/pacman.d/mirrorlist; \
     pacman-key --init; pacman-key --populate archlinuxarm; \
@@ -33,7 +33,7 @@ RUN set -e; n=0; until pacman -Syyuu --noconfirm --needed omarchy-keyring sudo c
       networkmanager polkit mesa xorg-xwayland pipewire pipewire-pulse pipewire-alsa wireplumber rtkit xdg-user-dirs xdg-utils noto-fonts noto-fonts-emoji \
       omarchy omarchy-settings omarchy-nvim omarchy-hyprland-titlebars omarchy-power-profiles-daemon \
       hyprland hyprland-guiutils hyprland-preview-share-picker hyprpicker hyprsunset uwsm quickshell xdg-desktop-portal-gtk xdg-desktop-portal-hyprland xdg-terminal-exec \
-      bat brightnessctl btop chromium disktree-bin evince expac eza fakeroot fastfetch fcitx5 fcitx5-gtk fcitx5-qt fd ffmpeg ffmpegthumbnailer fontconfig foot fzf \
+      bat brightnessctl btop chromium evince expac eza fakeroot fastfetch fcitx5 fcitx5-gtk fcitx5-qt fd ffmpeg ffmpegthumbnailer fontconfig foot fzf \
       gliff gnome-disk-utility gnome-keyring gnome-themes-extra grim gum herdr imagemagick imv inetutils inotify-tools inxi jq lazygit libsecret libyaml lua51 luarocks \
       mise-bin mpv mpv-mpris nautilus nautilus-python neovim omacalc omacut omasnap omawrite owe pacman-contrib pamixer plocate python-gobject \
       qrencode qt6-declarative qt6-imageformats qt6-multimedia qt6-svg qt6-wayland ripgrep slurp socat starship tldr tree-sitter-cli \
@@ -57,7 +57,7 @@ RUN set -e; export OMARCHY_PATH=/usr/share/omarchy OMARCHY_INSTALL=/usr/share/om
     rm -rf /etc/skel /var/lib/omarchy/image; cp -a /home/user /etc/skel; chown -R 0:0 /etc/skel; userdel -r user; \
     /usr/share/omarchy/bin/omarchy-apply-pacman stable; \
     sed -i -e 's/^CheckSpace/#CheckSpace/' -e 's/^DownloadUser.*/DisableSandbox/' /etc/pacman.conf; \
-    sed -i 's#^\[options\]#[options]\nNoExtract = usr/share/man/* usr/share/doc/* usr/share/info/* usr/share/locale/* usr/share/gtk-doc/* usr/share/help/* usr/share/omarchy/themes/*/intros/* usr/share/hypr/wall* usr/share/qt6/translations/* usr/share/gir-1.0/* usr/lib/chromium/chromedriver usr/bin/chromedriver usr/lib/chromium/locales/* !usr/lib/chromium/locales/en-US*#' /etc/pacman.conf
+    sed -i 's#^\[options\]#[options]\nNoExtract = usr/share/man/* usr/share/doc/* usr/share/info/* usr/share/locale/* usr/share/gtk-doc/* usr/share/help/* usr/share/omarchy/themes/*/intros/* usr/share/hypr/wall* usr/share/qt6/translations/* usr/share/gir-1.0/* usr/lib/chromium/chromedriver usr/bin/chromedriver usr/lib/chromium/locales/* !usr/lib/chromium/locales/en-US* usr/lib/*.a usr/lib/python3*/test/* usr/bin/js140 usr/bin/gtk4-rendernode-tool usr/bin/gtk4-node-editor usr/bin/gtk4-demo#' /etc/pacman.conf
 RUN sed -i 's/^#en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen && printf 'LANG=en_US.UTF-8\n' > /etc/locale.conf \
  && mkdir -p /etc/systemd/system/multi-user.target.wants \
  && ln -sf /usr/lib/systemd/system/NetworkManager.service /etc/systemd/system/multi-user.target.wants/NetworkManager.service \
@@ -68,3 +68,6 @@ RUN sed -i 's/^#en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen && print
 RUN printf '\n[[ $(tty) != /dev/hvc0 ]] || { unset PROMPT_COMMAND; PS1="[\\u@\\h \\W]\\\\$ "; }\n' >> /etc/skel/.bashrc && tail -2 /etc/skel/.bashrc
 RUN printf 'XDG_CURRENT_DESKTOP=Hyprland\nXDG_SESSION_DESKTOP=Hyprland\nDESKTOP_SESSION=omarchy\n' > /usr/lib/kw-desktop.env \
  && printf 'exec uwsm start -g -1 -e -D Hyprland hyprland.desktop\n' > /usr/lib/kw-desktop
+# uwsm's units give the compositor and its environment ten seconds to start,
+# which a first start on an emulated CPU does not keep.
+RUN mkdir -p /usr/lib/systemd/user/wayland-.service.d && printf '[Service]\nTimeoutStartSec=10min\n' > /usr/lib/systemd/user/wayland-.service.d/90-kw.conf
