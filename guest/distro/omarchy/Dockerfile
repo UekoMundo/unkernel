@@ -61,5 +61,8 @@ RUN sed -i 's/^#en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen && print
  && ln -sf /usr/lib/systemd/system/NetworkManager.service /etc/systemd/system/multi-user.target.wants/NetworkManager.service \
  && for s in systemd-networkd systemd-resolved sshd omarchy-provision-hardware omarchy-provision-owner limine-snapper-sync; do ln -sfn /dev/null /etc/systemd/system/$s.service; done \
  && { gpgconf --homedir /etc/pacman.d/gnupg --kill all; find /var/cache/pacman/pkg /boot /usr/include /usr/share/man /usr/share/doc /usr/share/info /usr/share/locale /usr/share/gtk-doc -type f -delete; rm -f /tmp/omarchy.asc; }
+# The boot console, behind the desktop: a plain prompt, by which the page and
+# the build see that the machine is up (Omarchy's is Starship's).
+RUN printf '\n[[ $(tty) != /dev/hvc0 ]] || { unset PROMPT_COMMAND; PS1="[\\u@\\h \\W]\\\\$ "; }\n' >> /etc/skel/.bashrc && tail -2 /etc/skel/.bashrc
 RUN printf 'XDG_CURRENT_DESKTOP=Hyprland\nXDG_SESSION_DESKTOP=Hyprland\nDESKTOP_SESSION=omarchy\n' > /usr/lib/kw-desktop.env \
  && printf 'exec uwsm start -g -1 -e -D Hyprland hyprland.desktop\n' > /usr/lib/kw-desktop
